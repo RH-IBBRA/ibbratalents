@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs / temp
+*.log
+*.tmp
+
+# Local dev artifacts (manter o serve.ps1, ele é útil)
+node_modules/
