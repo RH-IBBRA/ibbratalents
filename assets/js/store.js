@@ -567,13 +567,13 @@
       const tr2 = new Date(now.getTime() - 35 * 86400000).toISOString();
       const m = {
         id: "ex-marcelo",
-        fullName: "Marcelo Henrique",
-        email: "marcelo.henrique@ibbra.com.br",
+        fullName: "Marcelo Furtado",
+        email: "marcelo.furtado@ibbra.com.br",
         phone: "(62) 9 9876-1234",
         city: "Goiânia", state: "GO",
-        linkedin: "linkedin.com/in/marcelo-henrique-ibbra",
+        linkedin: "linkedin.com/in/marcelo-furtado-ibbra",
         experienceYears: 3, experienceMonths: 6,
-        summary: "Headhunter com 3 anos em R&S, em transição para Business Partner.",
+        summary: "Headhunter com 3 anos em R&S, em transição automatizada de carreira para Business Partner.",
         expertises: [
           { id: "recrutamento_selecao", evidence: "3 anos liderando R&S" },
           { id: "vendas_consultivas",   evidence: "Vendas consultivas B2B" }
@@ -673,8 +673,14 @@
           score: 88
         },
         trails: [
-          { trailId: "onboarding",   assignedAt: tr1, completedModules: ["m1","m2","m3","m4","m5"], completedAt: new Date(now.getTime() - 30 * 86400000).toISOString() },
-          { trailId: "headhunter_bp", assignedAt: tr2, completedModules: ["hbp1","hbp2","hbp3","hbp4"], completedAt: null }
+          // Onboarding: 100% concluído
+          { trailId: "onboarding",     assignedAt: tr1, completedModules: ["m1","m2","m3","m4","m5"], completedAt: new Date(now.getTime() - 30 * 86400000).toISOString() },
+          // Carreira HH→BP: 4/9 — TIER 1 (Headhunter) completo, em meio do TIER 2 (Talent Acquisition)
+          { trailId: "headhunter_bp",   assignedAt: tr2, completedModules: ["hbp1","hbp2","hbp3","hbp4"], completedAt: null },
+          // Trilhas complementares pra BP
+          { trailId: "people_analytics", assignedAt: tr2, completedModules: ["pa1","pa2"], completedAt: null },         // 2/5
+          { trailId: "coaching_mentoria", assignedAt: tr2, completedModules: ["cm1"], completedAt: null },                // 1/4
+          { trailId: "dei_avancado",     assignedAt: new Date(now.getTime() - 10 * 86400000).toISOString(), completedModules: [], completedAt: null } // 0/4 recém atribuída
         ]
       };
       all.unshift(m);

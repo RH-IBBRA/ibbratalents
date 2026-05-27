@@ -1623,30 +1623,77 @@
   // Tipo de módulo → ícone (visual da trilha)
   const MODULE_TYPE_ICON = { video: "▶", course: "◈", reading: "📖", task: "✓" };
 
+  // Para trilhas com tiers (ex: HH→TA→BP), descobre o tier atual do colaborador
+  function getCareerLevel(candidate, trailId = "headhunter_bp") {
+    const trail = (State.seed.trails || []).find(t => t.id === trailId);
+    if (!trail || !trail.tiers) return null;
+    const a = (candidate.trails || []).find(t => t.trailId === trailId);
+    if (!a) return null;
+    const completed = new Set(a.completedModules);
+    let currentTierIdx = 0;
+    for (let i = 0; i < trail.tiers.length; i++) {
+      const allDone = trail.tiers[i].modules.every(m => completed.has(m));
+      if (allDone) currentTierIdx = i + 1; else break;
+    }
+    const fully = currentTierIdx >= trail.tiers.length;
+    return {
+      trail,
+      tier: fully ? trail.tiers[trail.tiers.length - 1] : trail.tiers[currentTierIdx],
+      tierIdx: fully ? trail.tiers.length - 1 : currentTierIdx,
+      promotedTiers: trail.tiers.slice(0, currentTierIdx),  // tiers já passados
+      fully
+    };
+  }
+
   function trailStepperHTML(trail, assignment, editable = true) {
     const completed = new Set(assignment.completedModules);
-    const currentIdx = trail.modules.findIndex(m => !completed.has(m.id));
-    return `
-      <ol class="trail-stepper">
-        ${trail.modules.map((m, i) => {
-          const isDone = completed.has(m.id);
-          const isCurrent = !isDone && i === currentIdx;
-          const cls = isDone ? "done" : isCurrent ? "current" : "pending";
-          const icon = isDone ? "✓" : isCurrent ? "●" : (i + 1);
-          return `
-            <li class="trail-step trail-step-${cls}">
-              <div class="step-marker">${icon}</div>
-              <div class="step-body">
-                <div class="step-title">${escapeHtml(m.title)}</div>
-                <div class="step-meta">${escapeHtml(MODULE_TYPE_ICON[m.type] || "•")} ${escapeHtml(m.type)}${m.duration ? " · " + escapeHtml(m.duration) : ""}</div>
-                ${editable ? `<label class="step-action">
-                  <input type="checkbox" class="trail-mod-check" data-trail="${trail.id}" data-module="${m.id}" ${isDone ? "checked" : ""} />
-                  ${isDone ? "Concluído" : isCurrent ? "Marcar como concluído" : "Aguardando módulos anteriores"}
-                </label>` : ""}
-              </div>
-            </li>`;
-        }).join("")}
-      </ol>`;
+    const currentModule = trail.modules.find(m => !completed.has(m.id));
+
+    // Mapeia cada módulo ao seu tier (se a trilha tiver tiers)
+    const moduleToTier = {};
+    if (trail.tiers) {
+      for (const tier of trail.tiers) {
+        for (const modId of tier.modules) moduleToTier[modId] = tier;
+      }
+    }
+
+    let html = `<ol class="trail-stepper">`;
+    let lastTierId = null;
+    trail.modules.forEach((m, i) => {
+      const tier = moduleToTier[m.id];
+      // Header de tier antes do primeiro módulo de cada tier
+      if (tier && tier.id !== lastTierId) {
+        const tierDone = tier.modules.every(id => completed.has(id));
+        const tierStarted = tier.modules.some(id => completed.has(id));
+        const tierCls = tierDone ? "tier-done" : tierStarted ? "tier-current" : "tier-pending";
+        html += `<li class="trail-tier-header ${tierCls}">
+          <div class="tier-badge tier-${tier.tone || 'navy'}">
+            <span class="tier-name">${escapeHtml(tier.name)}</span>
+            ${tier.desc ? `<span class="tier-desc">${escapeHtml(tier.desc)}</span>` : ""}
+          </div>
+          ${tierDone ? `<span class="tier-promoted">🎉 Promovido</span>` : tierStarted ? `<span class="tier-inprogress">em formação</span>` : `<span class="tier-locked">bloqueado</span>`}
+        </li>`;
+        lastTierId = tier.id;
+      }
+      const isDone = completed.has(m.id);
+      const isCurrent = currentModule && currentModule.id === m.id;
+      const cls = isDone ? "done" : isCurrent ? "current" : "pending";
+      const icon = isDone ? "✓" : isCurrent ? "●" : (i + 1);
+      html += `
+        <li class="trail-step trail-step-${cls}">
+          <div class="step-marker">${icon}</div>
+          <div class="step-body">
+            <div class="step-title">${escapeHtml(m.title)}</div>
+            <div class="step-meta">${escapeHtml(MODULE_TYPE_ICON[m.type] || "•")} ${escapeHtml(m.type)}${m.duration ? " · " + escapeHtml(m.duration) : ""}</div>
+            ${editable ? `<label class="step-action">
+              <input type="checkbox" class="trail-mod-check" data-trail="${trail.id}" data-module="${m.id}" ${isDone ? "checked" : ""} />
+              ${isDone ? "Concluído" : isCurrent ? "Marcar como concluído" : "Aguardando módulos anteriores"}
+            </label>` : ""}
+          </div>
+        </li>`;
+    });
+    html += `</ol>`;
+    return html;
   }
 
   function trailsCardHTML(c) {
@@ -1827,6 +1874,7 @@
     const fit = c.fitScore || 0;
     const fitClass = fit >= 75 ? "high" : fit >= 50 ? "mid" : "low";
     const d = c.diagnosis;
+    const career = getCareerLevel(c);
 
     $("#view-candidato").innerHTML = `
       <div class="container">
@@ -1836,6 +1884,14 @@
             <div class="eyebrow gold">Candidato</div>
             <h1>${escapeHtml(c.fullName || "Sem nome")}</h1>
             <p class="lead">${escapeHtml(v.title)} \u00b7 ${seniorityLabel(c.fitSeniority)} \u00b7 score <strong>${fit}%</strong></p>
+            ${career ? `
+              <div class="career-banner career-tier-${career.tier.tone || 'navy'}">
+                <span class="career-label">Cargo atual na trilha</span>
+                <span class="career-current">${escapeHtml(career.tier.name)}</span>
+                ${career.promotedTiers.length ? `<span class="career-history">\u2191 promovido ${career.promotedTiers.length}\u00d7 \u00b7 partiu de ${escapeHtml(career.trail.tiers[0].name)}</span>` : `<span class="career-history">in\u00edcio da jornada</span>`}
+                ${career.fully ? `<span class="career-fully">\ud83c\udfc6 Trilha completa</span>` : ""}
+              </div>
+            ` : ""}
           </div>
           <div class="head-actions">
             <select id="stage-select" class="stage-select">

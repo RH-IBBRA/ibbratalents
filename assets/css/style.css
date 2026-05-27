@@ -759,6 +759,55 @@ label { display: block; margin: 12px 0 6px; font-size: 0.78rem; font-weight: 600
 .trail-step-pending .step-action { color: var(--ink-300); cursor: not-allowed; }
 .trail-step-pending .step-action input { pointer-events: none; }
 
+/* Tier headers (divisores na trilha de carreira) */
+.trail-tier-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 16px 0 8px; padding: 0; position: relative; gap: 12px;
+  list-style: none;
+}
+.trail-tier-header::marker { content: ""; }
+.tier-badge {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  font-family: var(--font-serif); font-weight: 700;
+}
+.tier-name { font-size: 1.05rem; letter-spacing: 0.04em; }
+.tier-desc { font-size: 0.74rem; font-family: var(--font-sans); font-weight: 400; letter-spacing: 0; opacity: 0.8; }
+.tier-navy  { background: var(--navy-800); color: var(--gold-400); }
+.tier-gold  { background: linear-gradient(135deg, var(--gold-500), var(--gold-600)); color: var(--navy-900); }
+.tier-green { background: linear-gradient(135deg, #4FA67D, var(--success)); color: #fff; }
+.tier-promoted {
+  background: rgba(47,125,91,0.18); color: var(--success);
+  padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.tier-inprogress {
+  background: rgba(216,155,58,0.18); color: var(--gold-600);
+  padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: lowercase;
+}
+.tier-locked {
+  background: var(--cream-200); color: var(--ink-500);
+  padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.trail-tier-header.tier-pending .tier-badge { opacity: 0.5; }
+
+/* Career banner no header do candidato */
+.career-banner {
+  display: inline-flex; align-items: center; gap: 16px;
+  margin-top: 12px; padding: 10px 18px; border-radius: var(--radius-md);
+  background: var(--card); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.career-banner.career-tier-gold  { border-left: 4px solid var(--gold-500); }
+.career-banner.career-tier-green { border-left: 4px solid var(--success); }
+.career-banner.career-tier-navy  { border-left: 4px solid var(--navy-700); }
+.career-label  { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500); }
+.career-current { font-family: var(--font-serif); font-size: 1.2rem; font-weight: 700; color: var(--navy-800); }
+.career-history { font-size: 0.82rem; color: var(--ink-500); }
+.career-fully { background: rgba(47,125,91,0.16); color: var(--success); padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 0.82rem; }
+
 /* Vista agregada T&D > Trilhas */
 .trails-overview { display: flex; flex-direction: column; gap: 18px; }
 .trail-overview-card { background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-sm); }

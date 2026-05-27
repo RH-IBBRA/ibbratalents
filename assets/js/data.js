@@ -2,7 +2,7 @@
 // Baseado na metodologia IBBRA Full Family Office (ibbra.com.br) e na r\u00e9gua de carreira de Financial Advisor.
 
 window.IBBRA_RH_SEED = {
-  version: 4, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
+  version: 5, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
   brand: {
     name: "IBBRA Full Family Office",
     product: "Talents \u00b7 Recrutamento, Sele\u00e7\u00e3o, Treinamento & Desenvolvimento",
@@ -346,22 +346,78 @@ window.IBBRA_RH_SEED = {
       ]
     },
 
-    // Trilha de carreira espec\u00edfica do time de R&S
+    // Trilha de carreira do time de R&S \u2014 com promo\u00e7\u00e3o autom\u00e1tica por tier
     {
       id: "headhunter_bp",
-      title: "Carreira: Headhunter \u2192 Business Partner",
-      desc: "Jornada t\u00e9cnica e estrat\u00e9gica do hunter ao parceiro de neg\u00f3cio. Combina forma\u00e7\u00e3o em R&S com compet\u00eancias consultivas, leitura de mercado e relacionamento C-Level.",
+      title: "Carreira: Headhunter \u2192 Talent Acquisition \u2192 Business Partner",
+      desc: "Trilha de promo\u00e7\u00e3o autom\u00e1tica em 3 tiers. Ao completar todos os m\u00f3dulos de um tier, o colaborador \u00e9 promovido ao pr\u00f3ximo cargo automaticamente.",
       target: "rh",
       modules: [
-        { id: "hbp1", title: "Onboarding cultural IBBRA",                  type: "course",  duration: "8h" },
-        { id: "hbp2", title: "Fundamentos de Recrutamento & Sele\u00e7\u00e3o",      type: "course",  duration: "12h" },
-        { id: "hbp3", title: "Hunting t\u00e9cnico avan\u00e7ado",                    type: "course",  duration: "10h" },
-        { id: "hbp4", title: "Mapeamento estrat\u00e9gico de mercado",           type: "course",  duration: "6h" },
-        { id: "hbp5", title: "Consultoria de carreira (mentoria assistida)", type: "task",    duration: "20h" },
-        { id: "hbp6", title: "Constru\u00e7\u00e3o de relacionamento C-Level",         type: "video",   duration: "3h" },
-        { id: "hbp7", title: "Business Partnering \u2014 fundamentos",            type: "course",  duration: "8h" },
-        { id: "hbp8", title: "Diagn\u00f3stico organizacional",                   type: "course",  duration: "6h" },
-        { id: "hbp9", title: "Cases pr\u00e1ticos como BP (rota\u00e7\u00e3o assistida)",  type: "task",    duration: "30h" }
+        { id: "hbp1", title: "Onboarding & cultura IBBRA",                          type: "course", duration: "8h"  },
+        { id: "hbp2", title: "Fundamentos de Recrutamento & Sele\u00e7\u00e3o",                type: "course", duration: "12h" },
+        { id: "hbp3", title: "Hunting t\u00e9cnico \u2014 sourcing + abordagem ativa",          type: "course", duration: "10h" },
+        { id: "hbp4", title: "Entrevistas t\u00e9cnicas e comportamentais avan\u00e7adas",     type: "course", duration: "8h"  },
+        { id: "hbp5", title: "Employer branding & atra\u00e7\u00e3o de talentos",              type: "course", duration: "6h"  },
+        { id: "hbp6", title: "Diversidade, equidade e inclus\u00e3o (DEI)",                type: "course", duration: "6h"  },
+        { id: "hbp7", title: "Diagn\u00f3stico organizacional & cultura",                   type: "course", duration: "10h" },
+        { id: "hbp8", title: "People Analytics estrat\u00e9gico",                           type: "course", duration: "12h" },
+        { id: "hbp9", title: "Consultoria C-Level & Business Partnering aplicado",   type: "task",   duration: "30h" }
+      ],
+      tiers: [
+        { id: "hh",  name: "Headhunter",         desc: "Capta\u00e7\u00e3o t\u00e9cnica e estruturada",       modules: ["hbp1","hbp2","hbp3"], tone: "navy"  },
+        { id: "ta",  name: "Talent Acquisition", desc: "Estrat\u00e9gia de atra\u00e7\u00e3o e sele\u00e7\u00e3o",        modules: ["hbp4","hbp5","hbp6"], tone: "gold"  },
+        { id: "bp",  name: "Business Partner",   desc: "Parceria estrat\u00e9gica com o neg\u00f3cio",     modules: ["hbp7","hbp8","hbp9"], tone: "green" }
+      ]
+    },
+
+    // Trilhas complementares \u2014 skills que um BP precisa dominar
+    {
+      id: "people_analytics",
+      title: "People Analytics estrat\u00e9gico",
+      desc: "Da coleta \u00e0 decis\u00e3o: como usar dados para sustentar a\u00e7\u00f5es de BP.",
+      target: "rh",
+      modules: [
+        { id: "pa1", title: "M\u00e9tricas essenciais de R&S (TTH, fill rate, qualidade)", type: "course",  duration: "4h" },
+        { id: "pa2", title: "SQL b\u00e1sico para People Analytics",                         type: "course",  duration: "6h" },
+        { id: "pa3", title: "Dashboards em Power BI / Looker",                           type: "course",  duration: "6h" },
+        { id: "pa4", title: "OKRs e KPIs de pessoas",                                    type: "video",   duration: "2h" },
+        { id: "pa5", title: "Storytelling com dados para C-Level",                       type: "task",    duration: "4h" }
+      ]
+    },
+    {
+      id: "coaching_mentoria",
+      title: "Coaching & Mentoria",
+      desc: "Habilidades 1:1 fundamentais pra BP que desenvolve gestores e times.",
+      target: "rh",
+      modules: [
+        { id: "cm1", title: "Escuta ativa e presen\u00e7a plena",        type: "course",  duration: "3h" },
+        { id: "cm2", title: "Perguntas poderosas (modelo GROW)",     type: "course",  duration: "4h" },
+        { id: "cm3", title: "Constru\u00e7\u00e3o de PDIs eficazes",           type: "reading", duration: "2h" },
+        { id: "cm4", title: "Feedback cont\u00ednuo e radical candor",    type: "course",  duration: "3h" }
+      ]
+    },
+    {
+      id: "negociacao_avancada",
+      title: "Negocia\u00e7\u00e3o Avan\u00e7ada",
+      desc: "Pra conduzir conversas dif\u00edceis: sal\u00e1rio, contraofertas, alinhamento entre gestor e candidato.",
+      target: "rh",
+      modules: [
+        { id: "na1", title: "BATNA, ZOPA e ancoragem",                  type: "course",  duration: "4h" },
+        { id: "na2", title: "Comunica\u00e7\u00e3o n\u00e3o-violenta na negocia\u00e7\u00e3o",   type: "course",  duration: "3h" },
+        { id: "na3", title: "Negocia\u00e7\u00e3o salarial com C-Level",          type: "video",   duration: "2h" },
+        { id: "na4", title: "Conduzindo contraofertas e rescis\u00f5es",      type: "task",    duration: "3h" }
+      ]
+    },
+    {
+      id: "dei_avancado",
+      title: "DEI \u2014 Diversidade, Equidade e Inclus\u00e3o",
+      desc: "Dom\u00ednio operacional e estrat\u00e9gico de DEI para BPs.",
+      target: "rh",
+      modules: [
+        { id: "dei1", title: "Vieses inconscientes na sele\u00e7\u00e3o",         type: "course",  duration: "4h" },
+        { id: "dei2", title: "Equidade salarial e auditoria",            type: "course",  duration: "6h" },
+        { id: "dei3", title: "Constru\u00e7\u00e3o de ERGs (Employee Resource Groups)", type: "reading", duration: "3h" },
+        { id: "dei4", title: "M\u00e9tricas de DEI e accountability",         type: "course",  duration: "4h" }
       ]
     }
   ],
