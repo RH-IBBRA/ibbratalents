@@ -2,7 +2,7 @@
 // Baseado na metodologia IBBRA Full Family Office (ibbra.com.br) e na r\u00e9gua de carreira de Financial Advisor.
 
 window.IBBRA_RH_SEED = {
-  version: 3, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
+  version: 4, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
   brand: {
     name: "IBBRA Full Family Office",
     product: "Talents \u00b7 Recrutamento, Sele\u00e7\u00e3o, Treinamento & Desenvolvimento",
@@ -343,6 +343,25 @@ window.IBBRA_RH_SEED = {
         { id: "a1", title: "Perfil do cliente high ticket",          type: "video",   duration: "30 min" },
         { id: "a2", title: "Postura, etiqueta e orat\u00f3ria",           type: "course",  duration: "4h" },
         { id: "a3", title: "Privacidade, discri\u00e7\u00e3o e LGPD",          type: "reading", duration: "1h" }
+      ]
+    },
+
+    // Trilha de carreira espec\u00edfica do time de R&S
+    {
+      id: "headhunter_bp",
+      title: "Carreira: Headhunter \u2192 Business Partner",
+      desc: "Jornada t\u00e9cnica e estrat\u00e9gica do hunter ao parceiro de neg\u00f3cio. Combina forma\u00e7\u00e3o em R&S com compet\u00eancias consultivas, leitura de mercado e relacionamento C-Level.",
+      target: "rh",
+      modules: [
+        { id: "hbp1", title: "Onboarding cultural IBBRA",                  type: "course",  duration: "8h" },
+        { id: "hbp2", title: "Fundamentos de Recrutamento & Sele\u00e7\u00e3o",      type: "course",  duration: "12h" },
+        { id: "hbp3", title: "Hunting t\u00e9cnico avan\u00e7ado",                    type: "course",  duration: "10h" },
+        { id: "hbp4", title: "Mapeamento estrat\u00e9gico de mercado",           type: "course",  duration: "6h" },
+        { id: "hbp5", title: "Consultoria de carreira (mentoria assistida)", type: "task",    duration: "20h" },
+        { id: "hbp6", title: "Constru\u00e7\u00e3o de relacionamento C-Level",         type: "video",   duration: "3h" },
+        { id: "hbp7", title: "Business Partnering \u2014 fundamentos",            type: "course",  duration: "8h" },
+        { id: "hbp8", title: "Diagn\u00f3stico organizacional",                   type: "course",  duration: "6h" },
+        { id: "hbp9", title: "Cases pr\u00e1ticos como BP (rota\u00e7\u00e3o assistida)",  type: "task",    duration: "30h" }
       ]
     }
   ],

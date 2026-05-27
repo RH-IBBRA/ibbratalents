@@ -557,6 +557,131 @@
       return seed;
     },
 
+    // ---- exemplo seeded (Marcelo) — só insere se ainda não existir
+    seedExampleIfMissing() {
+      const all = this.getCandidates();
+      if (all.some(c => c.id === "ex-marcelo")) return false;
+      const now = new Date();
+      const hiredAt = new Date(now.getTime() - 60 * 86400000).toISOString(); // 60 dias atrás
+      const tr1 = new Date(now.getTime() - 60 * 86400000).toISOString();
+      const tr2 = new Date(now.getTime() - 35 * 86400000).toISOString();
+      const m = {
+        id: "ex-marcelo",
+        fullName: "Marcelo Henrique",
+        email: "marcelo.henrique@ibbra.com.br",
+        phone: "(62) 9 9876-1234",
+        city: "Goiânia", state: "GO",
+        linkedin: "linkedin.com/in/marcelo-henrique-ibbra",
+        experienceYears: 3, experienceMonths: 6,
+        summary: "Headhunter com 3 anos em R&S, em transição para Business Partner.",
+        expertises: [
+          { id: "recrutamento_selecao", evidence: "3 anos liderando R&S" },
+          { id: "vendas_consultivas",   evidence: "Vendas consultivas B2B" }
+        ],
+        certifications: [],
+        languages: ["Português (nativo)", "Inglês (avançado)"],
+        education: [{ degree: "Bacharel em Psicologia", institution: "PUC-GO", year: "2020" }],
+        fitVacancyId: "rh_pessoas", fitSeniority: "pleno", fitScore: 85,
+        fitJustification: "Profissional com 3 anos em R&S, hunting técnico, mentalidade estratégica e potencial para evolução a BP.",
+        highlights: ["Mentalidade estratégica", "Bom comunicador", "Liderança natural"],
+        redFlags: [],
+        stage: "contratado",
+        stageEnteredAt: hiredAt,
+        stageHistory: [
+          { ts: new Date(now.getTime() - 90 * 86400000).toISOString(), from: null,         to: "triagem",    by: "sistema" },
+          { ts: new Date(now.getTime() - 80 * 86400000).toISOString(), from: "triagem",    to: "rh",         by: "Gestor de T&D" },
+          { ts: new Date(now.getTime() - 70 * 86400000).toISOString(), from: "rh",         to: "tecnica",    by: "Gestor de T&D" },
+          { ts: new Date(now.getTime() - 65 * 86400000).toISOString(), from: "tecnica",    to: "proposta",   by: "Administrador" },
+          { ts: hiredAt,                                                  from: "proposta",   to: "contratado", by: "Administrador" }
+        ],
+        notes: "Em trilha de carreira de Headhunter para Business Partner. Avaliação semestral em agosto.",
+        resumeText: "Currículo de exemplo do Marcelo Henrique — Headhunter sênior em desenvolvimento para BP.",
+        source: "exemplo",
+        createdAt: new Date(now.getTime() - 90 * 86400000).toISOString(),
+        updatedAt: hiredAt,
+        hiredAt, hiredAutomationDone: true,
+        comments: [
+          {
+            id: "cm-ex-1", ts: new Date(now.getTime() - 14 * 86400000).toISOString(),
+            author: "Gestor de T&D", role: "gestor",
+            text: "Marcelo entregou o módulo de Hunting Avançado com nota excelente. Pronto para o próximo passo na trilha."
+          },
+          {
+            id: "cm-ex-2", ts: new Date(now.getTime() - 7 * 86400000).toISOString(),
+            author: "Administrador", role: "admin",
+            text: "Conversamos sobre a transição para BP. Forte alinhamento. Vamos atribuir mentoria do João nos próximos 30 dias."
+          }
+        ],
+        feedbacks: [
+          {
+            id: "fb-ex-hire", ts: hiredAt, from: "IBBRA Talents (automático)", type: "reconhecimento",
+            text: "🎉 Bem-vindo(a) à IBBRA! Trilhas de onboarding atribuídas automaticamente."
+          },
+          {
+            id: "fb-ex-1", ts: new Date(now.getTime() - 20 * 86400000).toISOString(), from: "Gestor de T&D", type: "positivo",
+            text: "Excelente facilitação na entrevista com a candidata Ana. Soube conduzir a conversa de forma técnica e empática."
+          },
+          {
+            id: "fb-ex-2", ts: new Date(now.getTime() - 5 * 86400000).toISOString(), from: "Administrador", type: "construtivo",
+            text: "Atenção ao volume de candidatos no funil. Vamos trabalhar priorização nas próximas 1:1s."
+          }
+        ],
+        oneonones: [
+          {
+            id: "1on1-ex-1", ts: new Date(now.getTime() - 30 * 86400000).toISOString(),
+            scheduledFor: new Date(now.getTime() - 30 * 86400000).toISOString(),
+            manager: "Gestor de T&D", agenda: "Check-in dos primeiros 30 dias",
+            notes: "Marcelo bem adaptado. Trilha de onboarding 100% concluída no prazo. Discutimos próximos passos.",
+            actionItems: [], status: "concluido"
+          },
+          {
+            id: "1on1-ex-2", ts: new Date(now.getTime() + 7 * 86400000).toISOString(),
+            scheduledFor: new Date(now.getTime() + 7 * 86400000).toISOString(),
+            manager: "Gestor de T&D", agenda: "Avaliação módulo Diagnóstico organizacional + plano para cases BP",
+            notes: "", actionItems: [], status: "agendado"
+          }
+        ],
+        pdi: {
+          createdAt: hiredAt,
+          goals: [
+            {
+              id: "g-ex-1", ts: hiredAt, title: "Concluir trilha de Onboarding IBBRA",
+              competency: "Cultura e processos IBBRA", description: "Completar todos os módulos da trilha de boas-vindas.",
+              deadline: new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10),
+              status: "concluido", owner: "Marcelo"
+            },
+            {
+              id: "g-ex-2", ts: tr2, title: "Concluir trilha de carreira Headhunter → BP",
+              competency: "Business Partnering", description: "Avançar nos 9 módulos com mentoria assistida.",
+              deadline: new Date(now.getTime() + 180 * 86400000).toISOString().slice(0, 10),
+              status: "em_progresso", owner: "Marcelo"
+            },
+            {
+              id: "g-ex-3", ts: tr2, title: "Conduzir 5 casos como BP assistido",
+              competency: "Business Partnering aplicado", description: "Rotação assistida em 5 áreas do negócio.",
+              deadline: new Date(now.getTime() + 240 * 86400000).toISOString().slice(0, 10),
+              status: "pendente", owner: "Marcelo"
+            }
+          ]
+        },
+        diagnosis: {
+          ts: new Date(now.getTime() - 25 * 86400000).toISOString(),
+          author: "Gestor de T&D",
+          dimensions: { tecnica: 4, cultural: 5, comunicacao: 5, disponibilidade: 4, pretensao_salarial: 4 },
+          recommendation: "avancar",
+          observations: "Pronto para a próxima fase. Plano: rotação assistida + mentoria sênior.",
+          score: 88
+        },
+        trails: [
+          { trailId: "onboarding",   assignedAt: tr1, completedModules: ["m1","m2","m3","m4","m5"], completedAt: new Date(now.getTime() - 30 * 86400000).toISOString() },
+          { trailId: "headhunter_bp", assignedAt: tr2, completedModules: ["hbp1","hbp2","hbp3","hbp4"], completedAt: null }
+        ]
+      };
+      all.unshift(m);
+      this.setCandidates(all);
+      return true;
+    },
+
     // ---- helpers
     nextId(prefix = "cand") {
       return prefix + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);

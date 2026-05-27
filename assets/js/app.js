@@ -105,16 +105,35 @@
   }
 
   const ACCOUNTS = [
-    { email: "rh@ibbra.com.br",     password: "ibbra2026", role: "rh",    name: "Time de RH IBBRA",
-      tag: "RH e Recrutamento", desc: "Acesso ao funil de candidatos, an\u00e1lise por IA e indicadores." },
-    { email: "gestor@ibbra.com.br", password: "ibbra2026", role: "admin", name: "Gestor de Pessoas",
-      tag: "Gest\u00e3o e Configura\u00e7\u00f5es", desc: "Tudo do RH + chave de API e dados mestre (vagas, expertises)." }
+    {
+      email: "rh@ibbra.com.br", password: "ibbra2026",
+      role: "recrutador", name: "Recrutador IBBRA",
+      label: "Recrutador",
+      desc: "Foco em Recrutamento & Sele\u00e7\u00e3o: funil, an\u00e1lise de curr\u00edculos por IA, planilha consolidada e coment\u00e1rios nos candidatos."
+    },
+    {
+      email: "tdgestor@ibbra.com.br", password: "ibbra2026",
+      role: "gestor", name: "Gestor de T&D",
+      label: "Gestor",
+      desc: "Tudo do Recrutador + atribui trilhas, agenda 1:1s, cria PDIs e envia feedback. Acesso pleno ao m\u00f3dulo de T&D."
+    },
+    {
+      email: "gestor@ibbra.com.br", password: "ibbra2026",
+      role: "admin", name: "Administrador IBBRA",
+      label: "Admin",
+      desc: "Tudo + Configura\u00e7\u00f5es da plataforma: chave da Claude API, editor de funil/trilhas, importa\u00e7\u00e3o do Notion, Zona de risco."
+    }
   ];
   function authenticate(email, password) {
     const e = (email || "").trim().toLowerCase();
     return ACCOUNTS.find(a => a.email === e && a.password === password) || null;
   }
-  function isAdmin() { return State.user?.role === "admin"; }
+  function isAdmin()      { return State.user?.role === "admin"; }
+  function isGestorPlus() { return ["gestor", "admin"].includes(State.user?.role); }   // pode editar T&D
+  function isRecrutador() { return ["recrutador", "rh", "gestor", "admin"].includes(State.user?.role); }
+  function roleLabel(role) {
+    return ({ recrutador: "Recrutador", rh: "Recrutador", gestor: "Gestor", admin: "Admin" })[role] || role;
+  }
 
   // ---------- helpers ----------
   function escapeHtml(str) {
@@ -286,16 +305,36 @@
           <div id="login-error" class="login-error" hidden></div>
           <button class="btn btn-primary btn-block" type="submit">Entrar</button>
           <div class="demo-accounts">
-            <div class="demo-label">Acessos de demonstra\u00e7\u00e3o</div>
+            <div class="demo-label">N\u00edveis de acesso</div>
             ${ACCOUNTS.map(a => `
               <button type="button" class="demo-card" data-email="${escapeHtml(a.email)}" data-pwd="${escapeHtml(a.password)}">
-                <div class="demo-role ${a.role}">${a.role === "admin" ? "Admin" : "RH"}</div>
+                <div class="demo-role role-${a.role}">${escapeHtml(a.label)}</div>
                 <div class="demo-info">
-                  <div class="demo-tag">${escapeHtml(a.tag)}</div>
+                  <div class="demo-tag">${escapeHtml(a.name)}</div>
                   <div class="demo-cred"><strong>${escapeHtml(a.email)}</strong> \u00b7 senha: ${escapeHtml(a.password)}</div>
                   <div class="demo-desc">${escapeHtml(a.desc)}</div>
                 </div>
               </button>`).join("")}
+
+            <details class="perm-matrix-wrap">
+              <summary>Ver matriz de permiss\u00f5es completa</summary>
+              <table class="perm-matrix">
+                <thead><tr><th>Recurso</th><th>Recrutador</th><th>Gestor</th><th>Admin</th></tr></thead>
+                <tbody>
+                  <tr><td>Funil de candidatos</td>      <td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>An\u00e1lise de curr\u00edculos (IA)</td><td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>Importar do Notion</td>        <td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>Planilha + exporta\u00e7\u00f5es</td>    <td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>Coment\u00e1rios e diagn\u00f3sticos</td><td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>T&amp;D \u2014 ler dashboards</td>  <td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>T&amp;D \u2014 criar 1:1s, PDIs, atribuir trilhas</td><td class="x">\u2014</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>Indicadores gerenciais</td>    <td>\u2713</td><td>\u2713</td><td>\u2713</td></tr>
+                  <tr><td>Editor de funil &amp; trilhas</td><td class="x">\u2014</td><td class="x">\u2014</td><td>\u2713</td></tr>
+                  <tr><td>Chave Claude API</td>          <td class="x">\u2014</td><td class="x">\u2014</td><td>\u2713</td></tr>
+                  <tr><td>Zona de risco (exclus\u00e3o)</td>  <td class="x">\u2014</td><td class="x">\u2014</td><td>\u2713</td></tr>
+                </tbody>
+              </table>
+            </details>
           </div>
         </form>
       </div>`;
@@ -345,7 +384,7 @@
         <div class="user-chip ${u.role}">
           <div class="avatar">${initials(u.name)}</div>
           <div>
-            <div>${escapeHtml(u.name.split(" ").slice(0, 2).join(" "))} <span class="role-pill">${u.role === "admin" ? "Admin" : "RH"}</span></div>
+            <div>${escapeHtml(u.name.split(" ").slice(0, 2).join(" "))} <span class="role-pill role-${u.role}">${roleLabel(u.role)}</span></div>
             <button class="linklike" id="logout">sair</button>
           </div>
         </div>` : ""}
@@ -497,41 +536,19 @@
   }
 
   function candidateCardHTML(c, opts = {}) {
-    const v = vacancyOf(c.fitVacancyId);
-    const fit = c.fitScore || 0;
-    const fitClass = fit >= 75 ? "high" : fit >= 50 ? "mid" : "low";
-    const exps = (c.expertises || []).slice(0, 3);
-    const days = agingDays(c);
-    const agClass = agingClass(days);
-    const showStageBadge = opts.showStageBadge;
     const st = stageOf(c.stage);
-    const cmt = commentsCount(c);
-
-    const flags = [];
-    if (hasRedFlags(c)) flags.push(`<span class="kflag flag-warn" title="Pontos de aten\u00e7\u00e3o">\u25b2</span>`);
-    if (hasDiagnosis(c)) flags.push(`<span class="kflag flag-diag" title="Diagn\u00f3stico emitido">\u2713 diag</span>`);
-    if (cmt > 0) flags.push(`<span class="kflag flag-cmt" title="${cmt} coment\u00e1rio(s)">\ud83d\udcac ${cmt}</span>`);
-
     return `
       <article class="kcard" data-id="${c.id}">
-        <div class="kcard-head">
-          <div class="kcard-avatar">${initials(c.fullName)}</div>
-          <div class="kcard-id">
-            <div class="kcard-name">${escapeHtml(c.fullName || "Sem nome")}</div>
-            <div class="kcard-loc">${escapeHtml(c.city || "")}${c.state ? " / " + escapeHtml(c.state) : ""}</div>
-          </div>
-          <div class="kcard-fit ${fitClass}">${fit}%</div>
+        <div class="kcard-name">${escapeHtml(c.fullName || "Sem nome")}</div>
+        <div class="kcard-rows">
+          <div class="kcard-row"><span class="kcard-key">Telefone</span><span class="kcard-val">${escapeHtml(c.phone || "\u2014")}</span></div>
+          <div class="kcard-row"><span class="kcard-key">E-mail</span><span class="kcard-val">${escapeHtml(c.email || "\u2014")}</span></div>
         </div>
-        <div class="kcard-vacancy">${escapeHtml(v.title)} \u00b7 <span class="muted">${seniorityLabel(c.fitSeniority)}</span></div>
-        ${showStageBadge ? `<div class="kcard-stage stage-${st.tone}">${escapeHtml(st.name)}</div>` : ""}
-        ${exps.length ? `<div class="kcard-tags">${exps.map(e => `<span class="tag">${escapeHtml(expertiseName(e.id || e))}</span>`).join("")}</div>` : ""}
-        ${flags.length ? `<div class="kcard-flags">${flags.join("")}</div>` : ""}
         <div class="kcard-foot">
-          <span class="kaging aging-${agClass}" title="${days} dia(s) ${showStageBadge ? "neste card" : "neste est\u00e1gio"}">\u23f1 ${days}d</span>
-          <label class="kcard-move">
-            mover \u2192
+          <span class="kcard-stage stage-${st.tone}">${escapeHtml(st.name)}</span>
+          <label class="kcard-move" title="Mover para outra etapa">
             <select data-id="${c.id}">
-              ${State.seed.pipeline.map(stp => `<option value="${stp.id}" ${stp.id === c.stage ? "selected" : ""}>${escapeHtml(stp.short)}</option>`).join("")}
+              ${State.seed.pipeline.map(stp => `<option value="${stp.id}" ${stp.id === c.stage ? "selected" : ""}>${escapeHtml(stp.name)}</option>`).join("")}
             </select>
           </label>
         </div>
@@ -1603,6 +1620,35 @@
       </div>`;
   }
 
+  // Tipo de módulo → ícone (visual da trilha)
+  const MODULE_TYPE_ICON = { video: "▶", course: "◈", reading: "📖", task: "✓" };
+
+  function trailStepperHTML(trail, assignment, editable = true) {
+    const completed = new Set(assignment.completedModules);
+    const currentIdx = trail.modules.findIndex(m => !completed.has(m.id));
+    return `
+      <ol class="trail-stepper">
+        ${trail.modules.map((m, i) => {
+          const isDone = completed.has(m.id);
+          const isCurrent = !isDone && i === currentIdx;
+          const cls = isDone ? "done" : isCurrent ? "current" : "pending";
+          const icon = isDone ? "✓" : isCurrent ? "●" : (i + 1);
+          return `
+            <li class="trail-step trail-step-${cls}">
+              <div class="step-marker">${icon}</div>
+              <div class="step-body">
+                <div class="step-title">${escapeHtml(m.title)}</div>
+                <div class="step-meta">${escapeHtml(MODULE_TYPE_ICON[m.type] || "•")} ${escapeHtml(m.type)}${m.duration ? " · " + escapeHtml(m.duration) : ""}</div>
+                ${editable ? `<label class="step-action">
+                  <input type="checkbox" class="trail-mod-check" data-trail="${trail.id}" data-module="${m.id}" ${isDone ? "checked" : ""} />
+                  ${isDone ? "Concluído" : isCurrent ? "Marcar como concluído" : "Aguardando módulos anteriores"}
+                </label>` : ""}
+              </div>
+            </li>`;
+        }).join("")}
+      </ol>`;
+  }
+
   function trailsCardHTML(c) {
     const trails = State.seed.trails || [];
     const assigned = c.trails || [];
@@ -1611,7 +1657,7 @@
     return `
       <div class="card" id="section-trails">
         <h3>Trilhas de desenvolvimento <span class="muted small" style="font-weight:400">— T&D</span></h3>
-        ${trails.length === 0 ? `<p class="muted small">Nenhuma trilha cadastrada no seed. Configure em <a class="linklike" data-nav="config">Configurações</a>.</p>` : ""}
+        ${trails.length === 0 ? `<p class="muted small">Nenhuma trilha cadastrada no seed.</p>` : ""}
         <div class="trails-list">
           ${trails.map(t => {
             const a = assignedMap[t.id];
@@ -1627,24 +1673,12 @@
                   </div>
                   <div class="trail-actions">
                     ${a
-                      ? `<span class="trail-progress ${a.completedAt ? "done" : ""}">${pct}%</span>
+                      ? `<span class="trail-progress ${a.completedAt ? "done" : ""}">${pct}% · ${done}/${total}</span>
                          <button class="btn btn-ghost-on-light btn-sm trail-unassign" data-trail="${t.id}">Remover</button>`
                       : `<button class="btn btn-primary btn-sm trail-assign" data-trail="${t.id}">Atribuir trilha</button>`}
                   </div>
                 </div>
-                ${a ? `
-                  <ul class="trail-modules">
-                    ${t.modules.map(m => {
-                      const checked = a.completedModules.includes(m.id);
-                      return `<li class="trail-module ${checked ? "done" : ""}">
-                        <label>
-                          <input type="checkbox" class="trail-mod-check" data-trail="${t.id}" data-module="${m.id}" ${checked ? "checked" : ""} />
-                          <span class="trail-mod-title">${escapeHtml(m.title)}</span>
-                          <span class="trail-mod-meta muted small">${escapeHtml(m.type)} · ${escapeHtml(m.duration || "")}</span>
-                        </label>
-                      </li>`;
-                    }).join("")}
-                  </ul>` : ""}
+                ${a ? trailStepperHTML(t, a, true) : ""}
               </div>`;
           }).join("")}
         </div>
@@ -2472,7 +2506,7 @@
           ${tdTab === "collabs" ? (collabs.length === 0 ? emptyCollabs : `<div class="collabs-grid">${collabs.map(collabsCard).join("")}</div>`) : ""}
 
           ${tdTab === "oneonones" ? `
-            <div class="card td-create-card">
+            <div class="card td-create-card ${isGestorPlus() ? "" : "td-readonly"}">
               <h3>Agendar 1:1</h3>
               ${collabs.length === 0 ? `<p class="muted small">Nenhum colaborador aprovado ainda.</p>` : `
                 <div class="td-create-form">
@@ -2509,7 +2543,7 @@
           ` : ""}
 
           ${tdTab === "pdi" ? `
-            <div class="card td-create-card">
+            <div class="card td-create-card ${isGestorPlus() ? "" : "td-readonly"}">
               <h3>Novo objetivo de PDI</h3>
               ${collabs.length === 0 ? `<p class="muted small">Nenhum colaborador aprovado ainda.</p>` : `
                 <div class="td-create-form">
@@ -2553,7 +2587,7 @@
           ` : ""}
 
           ${tdTab === "feedback" ? `
-            <div class="card td-create-card">
+            <div class="card td-create-card ${isGestorPlus() ? "" : "td-readonly"}">
               <h3>Novo feedback</h3>
               ${collabs.length === 0 ? `<p class="muted small">Nenhum colaborador aprovado ainda.</p>` : `
                 <div class="td-create-form">
@@ -2589,7 +2623,7 @@
           ` : ""}
 
           ${tdTab === "trails" ? `
-            <div class="card td-create-card">
+            <div class="card td-create-card ${isGestorPlus() ? "" : "td-readonly"}">
               <h3>Atribuir trilha a um colaborador</h3>
               ${collabs.length === 0 || (State.seed.trails || []).length === 0 ? `<p class="muted small">Precisa ter trilha cadastrada e ao menos um colaborador.</p>` : `
                 <div class="td-create-form">
@@ -2602,29 +2636,52 @@
             </div>
 
             ${trailsStats.length === 0 ? `<p class="muted">Nenhuma trilha cadastrada.</p>` : `
-              <div class="trails-grid">
+              <div class="trails-overview">
                 ${trailsStats.map(s => {
                   const pctCompleted = s.assigned.length ? Math.round((s.completed.length / s.assigned.length) * 100) : 0;
+                  // primeiro colaborador atribuído (referência visual do progresso)
+                  const ref = s.assigned[0];
+                  const refAssignment = ref && (ref.trails || []).find(x => x.trailId === s.trail.id);
                   return `
-                    <div class="trail-stat-card">
-                      <div class="trail-stat-title">${escapeHtml(s.trail.title)}</div>
-                      <div class="muted small">${escapeHtml(s.trail.desc || "")}</div>
-                      <div class="trail-stat-row">
-                        <div class="trail-stat-metric"><div class="value">${s.assigned.length}</div><div class="label">atribuídos</div></div>
-                        <div class="trail-stat-metric"><div class="value">${s.completed.length}</div><div class="label">concluídos</div></div>
-                        <div class="trail-stat-metric"><div class="value">${pctCompleted}%</div><div class="label">taxa</div></div>
+                    <div class="trail-overview-card">
+                      <div class="trail-overview-head">
+                        <div>
+                          <div class="trail-stat-title">${escapeHtml(s.trail.title)}</div>
+                          <div class="muted small">${escapeHtml(s.trail.desc || "")}</div>
+                        </div>
+                        <div class="trail-stat-row compact">
+                          <div class="trail-stat-metric"><div class="value">${s.assigned.length}</div><div class="label">atribuídos</div></div>
+                          <div class="trail-stat-metric"><div class="value">${s.completed.length}</div><div class="label">concluídos</div></div>
+                          <div class="trail-stat-metric"><div class="value">${pctCompleted}%</div><div class="label">taxa</div></div>
+                          <div class="trail-stat-metric"><div class="value">${s.trail.modules.length}</div><div class="label">módulos</div></div>
+                        </div>
                       </div>
-                      <div class="trail-modules-count muted small">${s.trail.modules.length} módulos</div>
+
+                      ${refAssignment ? `
+                        <div class="trail-overview-stepper">
+                          <div class="block-label">Progresso de ${escapeHtml(ref.fullName)} (referência)</div>
+                          ${trailStepperHTML(s.trail, refAssignment, false)}
+                        </div>
+                      ` : `
+                        <div class="trail-overview-stepper">
+                          <div class="block-label">Estrutura da trilha</div>
+                          ${trailStepperHTML(s.trail, { completedModules: [] }, false)}
+                        </div>
+                      `}
+
                       ${s.assigned.length ? `
-                        <ul class="trail-stat-people">
-                          ${s.assigned.slice(0, 8).map(c => {
-                            const a = (c.trails || []).find(x => x.trailId === s.trail.id);
-                            const pct = a ? Math.round((a.completedModules.length / s.trail.modules.length) * 100) : 0;
-                            return `<li><button class="linklike td-open" data-cand="${c.id}">${escapeHtml(c.fullName)}</button> <span class="muted small">${pct}%</span></li>`;
-                          }).join("")}
-                          ${s.assigned.length > 8 ? `<li class="muted small">+${s.assigned.length - 8} mais</li>` : ""}
-                        </ul>
-                      ` : `<p class="muted small">Nenhum colaborador nesta trilha.</p>`}
+                        <div class="trail-stat-people-wrap">
+                          <div class="block-label">Colaboradores</div>
+                          <ul class="trail-stat-people">
+                            ${s.assigned.slice(0, 12).map(c => {
+                              const a = (c.trails || []).find(x => x.trailId === s.trail.id);
+                              const pct = a ? Math.round((a.completedModules.length / s.trail.modules.length) * 100) : 0;
+                              return `<li><button class="linklike td-open" data-cand="${c.id}">${escapeHtml(c.fullName)}</button> <span class="muted small">${pct}% · ${(a?.completedModules?.length||0)}/${s.trail.modules.length}</span></li>`;
+                            }).join("")}
+                            ${s.assigned.length > 12 ? `<li class="muted small">+${s.assigned.length - 12} mais</li>` : ""}
+                          </ul>
+                        </div>
+                      ` : ""}
                     </div>`;
                 }).join("")}
               </div>`}
@@ -2889,6 +2946,7 @@ Portugu\u00eas (nativo), Ingl\u00eas (avan\u00e7ado), Espanhol (intermedi\u00e1r
   document.addEventListener("DOMContentLoaded", () => {
     State.seed = Store.getSeed();
     State.user = Store.getUser();
+    Store.seedExampleIfMissing();  // injeta Marcelo se ainda não existir
     mountChrome();
     nav(initialView());
 
