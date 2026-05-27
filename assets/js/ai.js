@@ -100,38 +100,77 @@ ${certs}
   // Sufixos: s\u00f3 separadores cercados por espa\u00e7os (n\u00e3o corta h\u00edfen interno de sobrenome composto)
   const NAME_SUFFIX_STRIP = /(\s+[\-\u2013|\u00b7]\s+.*|\s*\([^)]*\)\s*|\s*[\[\{][^\]\}]*[\]\}]\s*)$/;
 
-  // Word que parece parte de nome (capitalizada OU preposi\u00e7\u00e3o comum em nomes BR/Lat).
-  const NAME_WORD_RE = /^([A-Z\u00c0-\u00dd][A-Za-z\u00c0-\u00dd\u00e0-\u00ff'.\-]+|D[aeoEAO]s?|D[oa]|Von|Van|Del|Della|Du|Y)$/;
+  // Palavra capitalizada que parece sobrenome/nome
+  const NAME_WORD_CAPITAL = /^[A-Z\u00c0-\u00dd][A-Za-z\u00c0-\u00dd\u00e0-\u00ff'.\-]+$/;
+  // Preposi\u00e7\u00f5es/conectores comuns em nomes (case-insensitive)
+  const NAME_WORD_CONNECTOR = /^(d[aeo]s?|von|van|del|della|du|y|e)$/i;
+
+  // Palavras que indicam linha de skill/compet\u00eancia (rejeita falsos positivos
+  // em CVs do LinkedIn que listam skills antes do nome)
+  const SKILL_NOISE_WORDS = /\b(business|strategy|strategic|planning|management|managing|marketing|sales|operations|analytics|leadership|consulting|engineering|design|finance|product|project|coaching|excellence|skills|languages?|competencies|gest[\u00e3a]o|vendas|opera[\u00e7c][\u00f5o]es|portuguese|english|spanish|french|german|portugu[\u00eae]s|ingl[\u00eae]s|espanhol|franc[\u00eae]s|alem[\u00e3a]o|compet[\u00eae]ncias?|certifications?|certifica[\u00e7c][\u00f5o]es?|principais|top)\b/i;
+
+  // Cabe\u00e7alho de se\u00e7\u00e3o "Experi\u00eancia" / "Carreira" / "Hist\u00f3rico" etc. \u2014 anchor
+  const SECTION_EXP_ANCHOR = /^(experi[\u00eae]ncia(s)?|experience(s)?|professional\s+experience|work\s+experience|hist[\u00f3o]rico|trajet[\u00f3o]ria|carreira|atua[\u00e7c][\u00e3a]o)(\s+(profissional|profissionais))?\s*$/i;
+
+  // Linha tipo "Cidade, Estado[, Pa\u00eds]" \u2014 anchor secund\u00e1rio
+  const CITY_ANCHOR = /^[A-Z\u00c0-\u00dd][A-Za-z\u00c0-\u00dd\u00e0-\u00ff\s'.\-]+[,\/\-][\s]*[A-Za-z\u00c0-\u00dd\u00e0-\u00ff\s'.\-]+(\s*[,\/\-]\s*[A-Za-z\u00c0-\u00dd\u00e0-\u00ff\s'.\-]+)?\s*$/;
 
   function looksLikeNameLine(s) {
     if (!s) return false;
-    if (s.includes("@")) return false;          // e-mail
-    if (/\d/.test(s)) return false;             // tem d\u00edgito (telefone/CEP/etc)
-    if (s.length > 80) return false;            // linha longa demais
+    if (s.includes("@")) return false;
+    if (/\d/.test(s)) return false;
+    if (s.length > 80) return false;
     if (NAME_HEADER_BLOCKLIST.test(s)) return false;
+    if (SKILL_NOISE_WORDS.test(s)) return false;
     const words = s.split(/\s+/).filter(Boolean);
     if (words.length < 2 || words.length > 6) return false;
-    // Cada palavra precisa parecer nome
     let nameWords = 0;
     for (const w of words) {
-      // Aceita tamb\u00e9m nomes em CAIXA-ALTA (JO\u00c3O PEDRO)
-      const isAllCaps = /^[A-Z\u00c0-\u00dd'.\-]+$/.test(w) && w.length > 1;
-      if (NAME_WORD_RE.test(w) || isAllCaps) nameWords++;
+      const isCapital   = NAME_WORD_CAPITAL.test(w);
+      const isConnector = NAME_WORD_CONNECTOR.test(w);
+      const isAllCaps   = /^[A-Z\u00c0-\u00dd'.\-]+$/.test(w) && w.length > 1;
+      if (isCapital || isConnector || isAllCaps) nameWords++;
     }
-    // pelo menos 2 palavras precisam ser nominais E todas precisam atender ao padr\u00e3o (preposi\u00e7\u00f5es inclu\u00eddas)
     return nameWords === words.length && nameWords >= 2;
   }
 
   function detectName(raw) {
     if (!raw) return "";
-    // Examina as primeiras ~10 linhas n\u00e3o vazias, pulando cabe\u00e7alhos.
-    const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean).slice(0, 12);
-    for (const line of lines) {
-      if (looksLikeNameLine(line)) return cleanName(line);
+    const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+    // Estrat\u00e9gia 1 \u2014 Anchor "Experi\u00eancia": nome geralmente est\u00e1 nas 6 linhas anteriores
+    // (padr\u00e3o LinkedIn: ... skills ... certs ... NOME ... headline ... cidade ... Experi\u00eancia)
+    for (let i = 0; i < lines.length; i++) {
+      if (SECTION_EXP_ANCHOR.test(lines[i])) {
+        for (let j = i - 1; j >= Math.max(0, i - 8); j--) {
+          const cleaned = cleanName(lines[j]);
+          if (looksLikeNameLine(cleaned)) return cleaned;
+        }
+        break;
+      }
     }
-    // Fallback: tenta primeira linha n\u00e3o-cabe\u00e7alho mesmo se padr\u00e3o for menos estrito
-    for (const line of lines) {
-      if (!line.includes("@") && !/\d/.test(line) && !NAME_HEADER_BLOCKLIST.test(line) && line.split(/\s+/).length >= 2 && line.length <= 80) {
+
+    // Estrat\u00e9gia 2 \u2014 Anchor cidade/UF: walks back na busca do nome
+    for (let i = 1; i < Math.min(lines.length, 40); i++) {
+      if (CITY_ANCHOR.test(lines[i])) {
+        for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
+          const cleaned = cleanName(lines[j]);
+          if (looksLikeNameLine(cleaned)) return cleaned;
+        }
+        break;
+      }
+    }
+
+    // Estrat\u00e9gia 3 \u2014 Scan top: pega a primeira linha que parece nome
+    for (const line of lines.slice(0, 15)) {
+      const cleaned = cleanName(line);
+      if (looksLikeNameLine(cleaned)) return cleaned;
+    }
+
+    // Fallback final: primeira linha n\u00e3o-cabe\u00e7alho que tenha 2+ palavras
+    for (const line of lines.slice(0, 15)) {
+      if (!line.includes("@") && !/\d/.test(line) && !NAME_HEADER_BLOCKLIST.test(line)
+          && !SKILL_NOISE_WORDS.test(line) && line.split(/\s+/).length >= 2 && line.length <= 80) {
         return cleanName(line);
       }
     }
