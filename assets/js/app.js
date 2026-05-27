@@ -145,7 +145,21 @@
     $$(".nav button").forEach(b => b.classList.toggle("active", b.dataset.nav === view));
     Object.assign(State, opts);
     window.scrollTo({ top: 0, behavior: "instant" });
+    // Persiste a view no hash da URL (restaura no refresh)
+    const candPart = (view === "candidato" && State.currentCandidateId) ? "/" + State.currentCandidateId : "";
+    const newHash = "#" + view + candPart;
+    if (window.location.hash !== newHash) {
+      // replaceState pra não criar entrada extra no histórico
+      history.replaceState(null, "", newHash);
+    }
     renderView(view);
+  }
+
+  function readHashRoute() {
+    const h = (window.location.hash || "").replace(/^#/, "");
+    if (!h) return null;
+    const parts = h.split("/");
+    return { view: parts[0], candidatoId: parts[1] || null };
   }
   function vacancyOf(id) {
     return State.seed.vacancies.find(v => v.id === id) || State.seed.vacancies[0];
@@ -2861,10 +2875,32 @@ Idiomas
 Portugu\u00eas (nativo), Ingl\u00eas (avan\u00e7ado), Espanhol (intermedi\u00e1rio)`;
 
   // ---------- BOOT ----------
+  const KNOWN_VIEWS = new Set(["login","funil","analise","indicadores","planilha","candidato","td","config"]);
+  function initialView() {
+    if (!State.user) return "login";
+    const route = readHashRoute();
+    if (route && KNOWN_VIEWS.has(route.view) && route.view !== "login") {
+      if (route.candidatoId) State.currentCandidateId = route.candidatoId;
+      return route.view;
+    }
+    return "funil";
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     State.seed = Store.getSeed();
     State.user = Store.getUser();
     mountChrome();
-    nav(State.user ? "funil" : "login");
+    nav(initialView());
+
+    // Back/forward do browser também navegam
+    window.addEventListener("hashchange", () => {
+      const route = readHashRoute();
+      if (!route || !KNOWN_VIEWS.has(route.view)) return;
+      // evita loop: se já está na view, não re-navega
+      const current = $(".view.active")?.id?.replace("view-", "");
+      if (current === route.view && (!route.candidatoId || State.currentCandidateId === route.candidatoId)) return;
+      const opts = route.candidatoId ? { currentCandidateId: route.candidatoId } : {};
+      nav(route.view, opts);
+    });
   });
 })();
