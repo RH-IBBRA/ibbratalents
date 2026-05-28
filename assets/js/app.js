@@ -1623,8 +1623,19 @@
   // Tipo de módulo → ícone (visual da trilha)
   const MODULE_TYPE_ICON = { video: "▶", course: "◈", reading: "📖", task: "✓" };
 
-  // Para trilhas com tiers (ex: HH→TA→BP), descobre o tier atual do colaborador
-  function getCareerLevel(candidate, trailId = "headhunter_bp") {
+  // Detecta a trilha de carreira de acordo com a vaga do candidato
+  function careerTrailForCandidate(candidate) {
+    const v = candidate?.fitVacancyId;
+    if (!v) return null;
+    if (v === "rh_pessoas") return "headhunter_bp";
+    if (["fa_trainee1","fa_trainee2","junior","pleno","senior"].includes(v)) return "financial_advisor";
+    return null;
+  }
+
+  // Para trilhas com tiers (ex: HH→TA→BP, Júnior→Pleno→Sênior), descobre o tier atual do colaborador
+  function getCareerLevel(candidate, trailId) {
+    trailId = trailId || careerTrailForCandidate(candidate);
+    if (!trailId) return null;
     const trail = (State.seed.trails || []).find(t => t.id === trailId);
     if (!trail || !trail.tiers) return null;
     const a = (candidate.trails || []).find(t => t.trailId === trailId);
@@ -1694,6 +1705,127 @@
     });
     html += `</ol>`;
     return html;
+  }
+
+  function avgRatings(arrays) {
+    const all = arrays.flat().filter(v => typeof v === "number" && v > 0);
+    if (!all.length) return 0;
+    return all.reduce((a,b)=>a+b,0) / all.length;
+  }
+
+  // Checklist de promoção pro próximo tier de carreira
+  function getPromotionChecklist(c) {
+    const trailId = careerTrailForCandidate(c);
+    const trail = trailId ? (State.seed.trails || []).find(t => t.id === trailId) : null;
+    const career = trail ? getCareerLevel(c, trailId) : null;
+    const ass = trail ? (c.trails || []).find(t => t.trailId === trailId) : null;
+
+    const items = [];
+
+    // 1) trilha completa
+    if (trail && ass) {
+      const total = trail.modules.length;
+      const done = ass.completedModules.length;
+      items.push({
+        label: `Trilha "${trail.title}"`,
+        detail: `${done} de ${total} módulos concluídos`,
+        done: done === total
+      });
+    } else {
+      items.push({ label: "Trilha de carreira", detail: "não atribuída", done: false });
+    }
+
+    // 2) 1:1s concluídas (mín 6)
+    const ones = (c.oneonones || []).filter(o => o.status === "concluido").length;
+    items.push({ label: "1:1s realizadas", detail: `${ones} concluídas (mín. 6)`, done: ones >= 6 });
+
+    // 3) feedbacks (mín 4)
+    const fbs = (c.feedbacks || []).filter(f => !f.from?.includes("automático")).length;
+    items.push({ label: "Feedbacks recebidos", detail: `${fbs} registrados (mín. 4)`, done: fbs >= 4 });
+
+    // 4) PDI objetivos concluídos (mín 2)
+    const pdiDone = ((c.pdi || {}).goals || []).filter(g => g.status === "concluido").length;
+    items.push({ label: "Objetivos de PDI", detail: `${pdiDone} concluídos (mín. 2)`, done: pdiDone >= 2 });
+
+    // 5) diagnóstico positivo
+    const d = c.diagnosis;
+    items.push({
+      label: "Diagnóstico de perfil",
+      detail: d ? `${recLabel(d.recommendation)} · score ${d.score}%` : "não emitido",
+      done: d && d.recommendation === "avancar" && (d.score || 0) >= 75
+    });
+
+    // 6) interviewer evals
+    const evals = c.interviewerEvals || [];
+    const softAvg = avgRatings(evals.map(e => Object.values(e.softSkills || {})));
+    const hardAvg = avgRatings(evals.map(e => Object.values(e.hardSkills || {})));
+    items.push({ label: "Soft skills (média)", detail: evals.length ? softAvg.toFixed(1) + " / 5  (mín. 4.0)" : "sem avaliações", done: softAvg >= 4 });
+    items.push({ label: "Hard skills (média)", detail: evals.length ? hardAvg.toFixed(1) + " / 5  (mín. 4.0)" : "sem avaliações", done: hardAvg >= 4 });
+
+    const totalCriteria = items.length;
+    const doneCriteria = items.filter(i => i.done).length;
+    const pct = totalCriteria ? Math.round((doneCriteria / totalCriteria) * 100) : 0;
+
+    // Próximo cargo (se houver tiers)
+    let nextRole = null, currentRole = null, needsOfficialPromotion = false;
+    if (career && career.trail.tiers) {
+      currentRole = career.tier.name;
+      const idx = career.tierIdx;
+      if (!career.fully && idx + 1 < career.trail.tiers.length) {
+        nextRole = career.trail.tiers[idx + 1].name;
+      }
+      if (career.fully) nextRole = career.tier.name;
+      // Detecta se a vaga oficial está atrás do tier da trilha → precisa promoção formal
+      const tierVacancy = tierIdToVacancyId(career.tier.id);
+      if (tierVacancy && tierVacancy !== c.fitVacancyId) needsOfficialPromotion = true;
+    }
+
+    return { items, pct, doneCriteria, totalCriteria, allDone: doneCriteria === totalCriteria, currentRole, nextRole, needsOfficialPromotion };
+  }
+
+  // Mapa tier → fitVacancyId (pra promoção oficial)
+  function tierIdToVacancyId(tierId) {
+    return ({
+      fa_jr: "junior", fa_pl: "pleno", fa_sr: "senior",
+      hh: "rh_pessoas", ta: "rh_pessoas", bp: "rh_pessoas"
+    })[tierId] || null;
+  }
+
+  function promotionChecklistHTML(c) {
+    const ck = getPromotionChecklist(c);
+    if (!careerTrailForCandidate(c)) return ""; // sem trilha → não mostra
+    const headlineDone = ck.allDone;
+    const headlineTone = headlineDone ? "ready" : ck.pct >= 60 ? "almost" : "early";
+    return `
+      <div class="card promo-card" id="section-promotion">
+        <div class="card-head">
+          <h3>Critérios de promoção${ck.nextRole ? ` a <strong>${escapeHtml(ck.nextRole)}</strong>` : ""}</h3>
+          <span class="promo-pct promo-${headlineTone}">${ck.pct}%</span>
+        </div>
+        ${headlineDone ? `
+          <div class="promo-banner ready">
+            <span class="promo-banner-icon">🏆</span>
+            <div>
+              <strong>Todos os critérios atendidos.</strong> Colaborador apto à promoção formal a <strong>${escapeHtml(ck.nextRole || "próximo cargo")}</strong>.
+              ${ck.needsOfficialPromotion ? `<button class="btn btn-primary btn-sm" id="btn-promote">Promover oficialmente →</button>` : `<span class="muted small">Vaga oficial já atualizada.</span>`}
+            </div>
+          </div>` : `
+          <div class="promo-banner ${headlineTone}">
+            <span class="promo-banner-icon">${ck.pct >= 60 ? "⏳" : "📋"}</span>
+            <div><strong>${ck.doneCriteria} de ${ck.totalCriteria} critérios atendidos.</strong> Faltam ${ck.totalCriteria - ck.doneCriteria} para apto à promoção.</div>
+          </div>`}
+
+        <ul class="promo-checklist">
+          ${ck.items.map(it => `
+            <li class="promo-item ${it.done ? "promo-done" : "promo-todo"}">
+              <span class="promo-mark">${it.done ? "✓" : "○"}</span>
+              <div class="promo-text">
+                <div class="promo-label">${escapeHtml(it.label)}</div>
+                <div class="promo-detail muted small">${escapeHtml(it.detail)}</div>
+              </div>
+            </li>`).join("")}
+        </ul>
+      </div>`;
   }
 
   function trailsCardHTML(c) {
@@ -1908,6 +2040,7 @@
           <a href="#section-evaluations" class="subnav-link">Avaliações</a>
           <a href="#section-diag" class="subnav-link">Diagnóstico</a>
           <a href="#section-trails" class="subnav-link"><span class="subnav-bullet">T&amp;D</span> Trilhas</a>
+          <a href="#section-promotion" class="subnav-link"><span class="subnav-bullet">T&amp;D</span> Promoção</a>
           <a href="#section-oneonones" class="subnav-link"><span class="subnav-bullet">T&amp;D</span> 1:1s</a>
           <a href="#section-pdi" class="subnav-link"><span class="subnav-bullet">T&amp;D</span> PDI</a>
           <a href="#section-feedbacks" class="subnav-link"><span class="subnav-bullet">T&amp;D</span> Feedback</a>
@@ -2021,6 +2154,7 @@
             </div>
 
             ${trailsCardHTML(c)}
+            ${promotionChecklistHTML(c)}
             ${oneononesCardHTML(c)}
             ${pdiCardHTML(c)}
             ${feedbackCardHTML(c)}
@@ -2267,6 +2401,29 @@
       Store.removeFeedback(c.id, b.dataset.fb);
       renderCandidato();
     }));
+
+    // botão Promover (uma fase de carreira pra cima)
+    const btnPromote = $("#btn-promote");
+    if (btnPromote) btnPromote.addEventListener("click", () => {
+      const trailId = careerTrailForCandidate(c);
+      const trail = trailId ? (State.seed.trails || []).find(t => t.id === trailId) : null;
+      if (!trail || !trail.tiers) return;
+      // Mapeia tier-id → fitVacancyId equivalente
+      const tierToVacancy = {
+        fa_jr: "junior", fa_pl: "pleno", fa_sr: "senior",
+        hh: "rh_pessoas", ta: "rh_pessoas", bp: "rh_pessoas"
+      };
+      const career = getCareerLevel(c, trailId);
+      const newVacancy = tierToVacancy[career.tier.id] || c.fitVacancyId;
+      if (!confirm(`Promover ${c.fullName} a ${career.tier.name}? A vaga oficial será atualizada.`)) return;
+      Store.updateCandidate(c.id, { fitVacancyId: newVacancy, fitSeniority: newVacancy === "senior" ? "senior" : newVacancy === "pleno" ? "pleno" : c.fitSeniority });
+      Store.addFeedback(c.id, {
+        type: "reconhecimento",
+        text: `🚀 Promoção aprovada: agora atuando como ${career.tier.name}. Parabéns pela jornada!`
+      });
+      showToast(`${c.fullName} promovido(a) a ${career.tier.name}.`, "success");
+      renderCandidato();
+    });
 
     // subnav smooth scroll
     $$(".subnav-link").forEach(a => a.addEventListener("click", e => {

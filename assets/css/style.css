@@ -793,6 +793,40 @@ label { display: block; margin: 12px 0 6px; font-size: 0.78rem; font-weight: 600
 }
 .trail-tier-header.tier-pending .tier-badge { opacity: 0.5; }
 
+/* Promotion checklist card */
+.promo-card .card-head { justify-content: space-between; }
+.promo-pct { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 700; padding: 6px 16px; border-radius: var(--radius-sm); }
+.promo-pct.promo-ready  { background: rgba(47,125,91,0.16); color: var(--success); }
+.promo-pct.promo-almost { background: rgba(216,155,58,0.20); color: #8B5C12; }
+.promo-pct.promo-early  { background: rgba(168,176,189,0.22); color: var(--ink-500); }
+
+.promo-banner {
+  display: flex; gap: 14px; align-items: center;
+  padding: 14px 16px; border-radius: var(--radius-sm); margin: 10px 0 16px;
+}
+.promo-banner.ready  { background: rgba(47,125,91,0.08);  border: 1px solid rgba(47,125,91,0.30); }
+.promo-banner.almost { background: rgba(216,155,58,0.10); border: 1px solid rgba(216,155,58,0.30); }
+.promo-banner.early  { background: #FAF7F0;               border: 1px solid var(--line); }
+.promo-banner-icon { font-size: 1.8rem; line-height: 1; }
+.promo-banner > div { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.promo-banner button { align-self: flex-start; }
+
+.promo-checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.promo-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: var(--radius-sm); transition: background 0.15s; }
+.promo-item:hover { background: #FAF7F0; }
+.promo-done { color: var(--ink-700); }
+.promo-todo { color: var(--ink-700); }
+.promo-mark {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.82rem;
+  background: #fff; border: 2px solid var(--line); color: var(--ink-300);
+}
+.promo-done .promo-mark { background: var(--success); border-color: var(--success); color: #fff; }
+.promo-text { flex: 1; }
+.promo-label { font-weight: 600; font-size: 0.92rem; color: var(--navy-800); }
+.promo-detail { margin-top: 2px; }
+
 /* Career banner no header do candidato */
 .career-banner {
   display: inline-flex; align-items: center; gap: 16px;

@@ -2,7 +2,7 @@
 // Baseado na metodologia IBBRA Full Family Office (ibbra.com.br) e na r\u00e9gua de carreira de Financial Advisor.
 
 window.IBBRA_RH_SEED = {
-  version: 5, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
+  version: 6, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
   brand: {
     name: "IBBRA Full Family Office",
     product: "Talents \u00b7 Recrutamento, Sele\u00e7\u00e3o, Treinamento & Desenvolvimento",
@@ -310,16 +310,24 @@ window.IBBRA_RH_SEED = {
     },
     {
       id: "financial_advisor",
-      title: "Trilha Financial Advisor",
-      desc: "Da fundamenta\u00e7\u00e3o t\u00e9cnica ao atendimento high ticket.",
+      title: "Carreira: Financial Advisor J\u00fanior \u2192 Pleno \u2192 S\u00eanior",
+      desc: "Trilha de promo\u00e7\u00e3o autom\u00e1tica em 3 tiers. Ao completar todos os m\u00f3dulos de um tier, o consultor \u00e9 eleg\u00edvel \u00e0 promo\u00e7\u00e3o pro pr\u00f3ximo cargo.",
       target: "financial_advisor",
       modules: [
-        { id: "f1", title: "Modelo IBBRA Full Family Office",       type: "video",   duration: "40 min" },
-        { id: "f2", title: "Planejamento patrimonial 360\u00b0",          type: "course",  duration: "8h" },
-        { id: "f3", title: "ANBIMA CPA-20 \u2014 preparat\u00f3rio",           type: "course",  duration: "40h" },
-        { id: "f4", title: "Relacionamento com cliente high ticket", type: "video",   duration: "1h30" },
-        { id: "f5", title: "Cases reais \u2014 holdings e sucess\u00e3o",      type: "reading", duration: "3h" },
-        { id: "f6", title: "Shadow em consultor s\u00eanior",             type: "task",    duration: "20h" }
+        { id: "f1", title: "Modelo IBBRA Full Family Office",                       type: "video",   duration: "40 min" },
+        { id: "f2", title: "Planejamento patrimonial 360\u00b0 \u2014 fundamentos",           type: "course",  duration: "8h" },
+        { id: "f3", title: "ANBIMA CPA-20 \u2014 preparat\u00f3rio",                          type: "course",  duration: "40h" },
+        { id: "f4", title: "CEA \u2014 preparat\u00f3rio e prova",                            type: "course",  duration: "60h" },
+        { id: "f5", title: "Relacionamento com cliente high ticket",                type: "video",   duration: "1h30" },
+        { id: "f6", title: "Constru\u00e7\u00e3o e gest\u00e3o de carteira (at\u00e9 R$ 30MM)",         type: "task",    duration: "20h" },
+        { id: "f7", title: "CFP\u00ae \u2014 preparat\u00f3rio e prova",                           type: "course",  duration: "120h" },
+        { id: "f8", title: "Holdings, sucess\u00e3o e estruturas patrimoniais",          type: "course",  duration: "12h" },
+        { id: "f9", title: "Mentoria a trainees + lideran\u00e7a t\u00e9cnica",               type: "task",    duration: "40h" }
+      ],
+      tiers: [
+        { id: "fa_jr", name: "Financial Advisor J\u00fanior",  desc: "Fundamentos t\u00e9cnicos + ANBIMA CPA-20",       modules: ["f1","f2","f3"], tone: "navy"  },
+        { id: "fa_pl", name: "Financial Advisor Pleno",   desc: "Autonomia operacional + CEA + high ticket",   modules: ["f4","f5","f6"], tone: "gold"  },
+        { id: "fa_sr", name: "Financial Advisor S\u00eanior",  desc: "CFP\u00ae + sucess\u00f3rio + lideran\u00e7a t\u00e9cnica",         modules: ["f7","f8","f9"], tone: "green" }
       ]
     },
     {

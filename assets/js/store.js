@@ -557,15 +557,37 @@
       return seed;
     },
 
-    // ---- exemplo seeded (Marcelo) — só insere se ainda não existir
+    // ---- exemplos seeded (Marcelo + Leandro) — só inserem se ainda não existirem
     seedExampleIfMissing() {
+      let dirty = false;
       const all = this.getCandidates();
-      if (all.some(c => c.id === "ex-marcelo")) return false;
+      if (!all.some(c => c.id === "ex-marcelo")) {
+        all.unshift(this._buildMarcelo());
+        dirty = true;
+      }
+      if (!all.some(c => c.id === "ex-leandro")) {
+        all.unshift(this._buildLeandro());
+        dirty = true;
+      }
+      if (dirty) this.setCandidates(all);
+      return dirty;
+    },
+
+    _buildMarcelo() {
       const now = new Date();
-      const hiredAt = new Date(now.getTime() - 60 * 86400000).toISOString(); // 60 dias atrás
+      const hiredAt = new Date(now.getTime() - 60 * 86400000).toISOString();
       const tr1 = new Date(now.getTime() - 60 * 86400000).toISOString();
       const tr2 = new Date(now.getTime() - 35 * 86400000).toISOString();
-      const m = {
+      return this._buildMarceloPayload(now, hiredAt, tr1, tr2);
+    },
+    _buildLeandro() {
+      const now = new Date();
+      const hiredAt = new Date(now.getTime() - 3 * 365 * 86400000).toISOString(); // contratado há 3 anos
+      return this._buildLeandroPayload(now, hiredAt);
+    },
+
+    _buildMarceloPayload(now, hiredAt, tr1, tr2) {
+      return {
         id: "ex-marcelo",
         fullName: "Marcelo Furtado",
         email: "marcelo.furtado@ibbra.com.br",
@@ -683,9 +705,140 @@
           { trailId: "dei_avancado",     assignedAt: new Date(now.getTime() - 10 * 86400000).toISOString(), completedModules: [], completedAt: null } // 0/4 recém atribuída
         ]
       };
-      all.unshift(m);
-      this.setCandidates(all);
-      return true;
+    },
+
+    _buildLeandroPayload(now, hiredAt) {
+      const m24 = new Date(now.getTime() - 24 * 30 * 86400000).toISOString(); // 24m atrás
+      const m18 = new Date(now.getTime() - 18 * 30 * 86400000).toISOString();
+      const m12 = new Date(now.getTime() - 12 * 30 * 86400000).toISOString();
+      const m6  = new Date(now.getTime() -  6 * 30 * 86400000).toISOString();
+      const m3  = new Date(now.getTime() -  3 * 30 * 86400000).toISOString();
+      const m1  = new Date(now.getTime() -  1 * 30 * 86400000).toISOString();
+      const w1  = new Date(now.getTime() -  7 * 86400000).toISOString();
+
+      return {
+        id: "ex-leandro",
+        fullName: "Leandro Carlos",
+        email: "leandro.carlos@ibbra.com.br",
+        phone: "(62) 9 8521-0099",
+        city: "Goiânia", state: "GO",
+        linkedin: "linkedin.com/in/leandro-carlos-cfp",
+        experienceYears: 5, experienceMonths: 8,
+        summary: "Financial Advisor com 5+ anos em wealth management, em processo final de promoção a Sênior. Carteira ativa de famílias high ticket e domínio técnico completo (CFP®, CEA, CPA-20).",
+        expertises: [
+          { id: "wealth_management",        evidence: "5+ anos em wealth management" },
+          { id: "high_ticket",              evidence: "Carteira de famílias com PL > R$ 10MM" },
+          { id: "investimentos",            evidence: "Alocação estratégica multiclasse" },
+          { id: "planejamento_sucessorio",  evidence: "Implementação de holdings em 7 famílias" },
+          { id: "previdencia",              evidence: "Estruturas PGBL/VGBL otimizadas" },
+          { id: "planejamento_fiscal",      evidence: "Eficiência tributária em sucessão" }
+        ],
+        certifications: [
+          { id: "cpa20", evidence: "CPA-20 (2021)" },
+          { id: "cea",   evidence: "CEA (2022)" },
+          { id: "cfp",   evidence: "CFP® (2024)" }
+        ],
+        languages: ["Português (nativo)", "Inglês (avançado)", "Espanhol (intermediário)"],
+        education: [
+          { degree: "Bacharel em Economia",                    institution: "PUC-GO", year: "2017" },
+          { degree: "Pós-graduação em Finanças & Investimentos", institution: "FGV",    year: "2020" }
+        ],
+        fitVacancyId: "pleno", fitSeniority: "pleno", fitScore: 92,
+        fitJustification: "100% da trilha técnica concluída (Júnior → Pleno → Sênior). Diagnóstico positivo, 6 1:1s completas, PDI cumprido. Apto à promoção formal a Sênior.",
+        highlights: [
+          "Carteira de R$ 280MM sob assessoria",
+          "Implementou holdings em 7 famílias high ticket",
+          "Mentora ativamente 2 trainees",
+          "Aprovado em CFP® 2024 com nota alta",
+          "NPS interno: 9.4 (média dos últimos 12 meses)"
+        ],
+        redFlags: [],
+        stage: "contratado",
+        stageEnteredAt: hiredAt,
+        stageHistory: [
+          { ts: new Date(now.getTime() - 3.2 * 365 * 86400000).toISOString(), from: null,         to: "triagem",    by: "sistema" },
+          { ts: new Date(now.getTime() - 3.15 * 365 * 86400000).toISOString(), from: "triagem",   to: "rh",         by: "Recrutador IBBRA" },
+          { ts: new Date(now.getTime() - 3.1 * 365 * 86400000).toISOString(), from: "rh",         to: "tecnica",    by: "Gestor de T&D" },
+          { ts: new Date(now.getTime() - 3.05 * 365 * 86400000).toISOString(), from: "tecnica",   to: "proposta",   by: "Administrador" },
+          { ts: hiredAt,                                                       from: "proposta",   to: "contratado", by: "Administrador" }
+        ],
+        notes: "Critérios completos pra promoção a Sênior — CFP® obtido, carteira própria consolidada, mentoria ativa. Aguardando aprovação formal da diretoria.",
+        resumeText: "Currículo de exemplo do Leandro Carlos — FA Pleno apto à promoção a Sênior.",
+        source: "exemplo",
+        createdAt: new Date(now.getTime() - 3.2 * 365 * 86400000).toISOString(),
+        updatedAt: w1,
+        hiredAt, hiredAutomationDone: true,
+        comments: [
+          { id: "cm-lc-1", ts: m1, author: "Gestor de T&D", role: "gestor",
+            text: "Leandro concluiu o CFP®. Diferencial técnico no time. Pronto pra avançar à categoria Sênior." },
+          { id: "cm-lc-2", ts: w1, author: "Administrador",  role: "admin",
+            text: "Validamos a carteira atual em R$ 280MM. Performance entre os top 3 do escritório. Apto." }
+        ],
+        feedbacks: [
+          { id: "fb-lc-hire", ts: hiredAt, from: "IBBRA Talents (automático)", type: "reconhecimento",
+            text: "🎉 Bem-vindo(a) à IBBRA! Trilha de carreira Financial Advisor atribuída." },
+          { id: "fb-lc-1", ts: m18, from: "Gestor de T&D", type: "positivo",
+            text: "Aprovação na CEA com 92% — preparação exemplar." },
+          { id: "fb-lc-2", ts: m12, from: "Administrador",  type: "reconhecimento",
+            text: "Carteira passou de R$ 80MM pra R$ 180MM em 12 meses. Excelente." },
+          { id: "fb-lc-3", ts: m6,  from: "Gestor de T&D", type: "construtivo",
+            text: "Atenção à organização da agenda — duas reuniões reagendadas no mês. Já discutimos plano de melhoria." },
+          { id: "fb-lc-4", ts: m1,  from: "Administrador",  type: "reconhecimento",
+            text: "Aprovação no CFP®! Marco histórico da sua jornada na IBBRA. Parabéns." }
+        ],
+        oneonones: [
+          { id: "1on1-lc-1", ts: m24, scheduledFor: m24, manager: "Gestor de T&D",
+            agenda: "Check-in 6 meses pós-ingresso", notes: "Onboarding 100% concluído. Pronto pra CPA-20.", status: "concluido" },
+          { id: "1on1-lc-2", ts: m18, scheduledFor: m18, manager: "Gestor de T&D",
+            agenda: "Pós-CEA + estruturação de carteira inicial", notes: "Foco nas próximas 10 famílias do pipeline.", status: "concluido" },
+          { id: "1on1-lc-3", ts: m12, scheduledFor: m12, manager: "Gestor de T&D",
+            agenda: "Avaliação de performance anual", notes: "Resultado acima da meta. Promoção a Pleno aprovada.", status: "concluido" },
+          { id: "1on1-lc-4", ts: m6,  scheduledFor: m6,  manager: "Administrador",
+            agenda: "Preparação CFP® + visão sênior", notes: "Definimos cronograma de estudos. Mentoria assistida.", status: "concluido" },
+          { id: "1on1-lc-5", ts: m3,  scheduledFor: m3,  manager: "Gestor de T&D",
+            agenda: "Pós-prova CFP®", notes: "Aprovado. Iniciamos casos sucessórios assistidos.", status: "concluido" },
+          { id: "1on1-lc-6", ts: m1,  scheduledFor: m1,  manager: "Administrador",
+            agenda: "Critérios de promoção a Sênior", notes: "Check completo: trilha 100%, certificações ok, carteira sólida.", status: "concluido" }
+        ],
+        pdi: {
+          createdAt: new Date(now.getTime() - 3 * 365 * 86400000).toISOString(),
+          goals: [
+            { id: "g-lc-1", ts: m24, title: "Aprovar na ANBIMA CPA-20",        competency: "Fundamentos técnicos", description: "Preparação 40h + simulados.", deadline: new Date(now.getTime() - 22 * 30 * 86400000).toISOString().slice(0,10), status: "concluido", owner: "Leandro" },
+            { id: "g-lc-2", ts: m18, title: "Aprovar na ANBIMA CEA",            competency: "Aprofundamento técnico", description: "Preparação 60h.", deadline: new Date(now.getTime() - 17 * 30 * 86400000).toISOString().slice(0,10), status: "concluido", owner: "Leandro" },
+            { id: "g-lc-3", ts: m12, title: "Construir carteira de R$ 100MM",   competency: "High ticket relationship", description: "Captação ativa em famílias do pipeline.", deadline: new Date(now.getTime() - 8 * 30 * 86400000).toISOString().slice(0,10), status: "concluido", owner: "Leandro" },
+            { id: "g-lc-4", ts: m6,  title: "Aprovar no CFP® Planejar",          competency: "Certificação sênior", description: "Preparação 120h + 6 meses de estudos.", deadline: new Date(now.getTime() - 2 * 30 * 86400000).toISOString().slice(0,10), status: "concluido", owner: "Leandro" },
+            { id: "g-lc-5", ts: m3,  title: "Mentoriar 2 trainees ativamente",   competency: "Liderança técnica",      description: "Acompanhar dois trainees do programa.", deadline: new Date(now.getTime() + 60 * 86400000).toISOString().slice(0,10), status: "em_progresso", owner: "Leandro" }
+          ]
+        },
+        diagnosis: {
+          ts: m1, author: "Administrador",
+          dimensions: { tecnica: 5, cultural: 5, comunicacao: 5, disponibilidade: 4, pretensao_salarial: 4 },
+          recommendation: "avancar",
+          observations: "Critérios atendidos integralmente. Promover formalmente a Sênior na próxima janela trimestral.",
+          score: 92
+        },
+        interviewerEvals: [
+          {
+            id: "iev-lc-1", ts: m3, author: "Gestor de T&D", role: "gestor",
+            softSkills: { comunicacao: 5, trabalho_equipe: 5, lideranca: 5, resolucao: 4, proatividade: 5, organizacao: 4, empatia: 5, adaptabilidade: 4, inteligencia_emo: 5, pensamento_critico: 5 },
+            hardSkills: { analise_financeira: 5, alocacao_portfolio: 5, modelagem_patrim: 4, tributacao: 5, sucessao: 5, excel_financeiro: 5 },
+            comment: "Domínio técnico excepcional. Conduz casos sucessórios complexos com autonomia. Pronto pra senioridade."
+          },
+          {
+            id: "iev-lc-2", ts: m1, author: "Administrador", role: "admin",
+            softSkills: { comunicacao: 5, trabalho_equipe: 5, lideranca: 4, proatividade: 5, organizacao: 4 },
+            hardSkills: { analise_financeira: 5, alocacao_portfolio: 5, sucessao: 5, tributacao: 4 },
+            comment: "Liderança técnica madura. Mentoria ativa do time júnior. Apto à promoção."
+          }
+        ],
+        trails: [
+          { trailId: "onboarding",        assignedAt: hiredAt, completedModules: ["m1","m2","m3","m4","m5"], completedAt: new Date(now.getTime() - 2.9 * 365 * 86400000).toISOString() },
+          // Trilha de carreira FA: 9/9 — TODOS os 3 tiers (Júnior, Pleno, Sênior) completos
+          { trailId: "financial_advisor", assignedAt: hiredAt, completedModules: ["f1","f2","f3","f4","f5","f6","f7","f8","f9"], completedAt: m1 },
+          // Liderança IBBRA — preparação pra carreira de gestor (em progresso)
+          { trailId: "lideranca",         assignedAt: m6,      completedModules: ["l1","l2"], completedAt: null }
+        ]
+      };
     },
 
     // ---- helpers
