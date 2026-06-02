@@ -19,12 +19,12 @@
   function draw(doc, c) { doc.setDrawColor(c[0], c[1], c[2]); }
 
   function fmtDate(iso) {
-    if (!iso) return "—";
+    if (!iso) return "-";
     try { return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
     catch { return iso; }
   }
   function fmtDateTime(iso) {
-    if (!iso) return "—";
+    if (!iso) return "-";
     try { return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
     catch { return iso; }
   }
@@ -37,12 +37,12 @@
       .slice(0, 120) || "candidato";
   }
 
-  function vacancyOf(seed, id) { return (seed.vacancies || []).find(v => v.id === id) || { title: "—", level: "—" }; }
-  function stageOf(seed, id)   { return (seed.pipeline  || []).find(s => s.id === id) || { name: "—" }; }
+  function vacancyOf(seed, id) { return (seed.vacancies || []).find(v => v.id === id) || { title: "-", level: "-" }; }
+  function stageOf(seed, id)   { return (seed.pipeline  || []).find(s => s.id === id) || { name: "-" }; }
   function expertiseName(seed, id) { return (seed.expertises || []).find(e => e.id === id)?.name || id; }
   function certName(seed, id)      { return (seed.certifications || []).find(c => c.id === id)?.name || id; }
   function seniorityLabel(s) {
-    return ({ estagiario: "Estagiário/Trainee", junior: "Júnior", pleno: "Pleno", senior: "Sênior" })[s] || s || "—";
+    return ({ estagiario: "Estagiário/Trainee", junior: "Júnior", pleno: "Pleno", senior: "Sênior" })[s] || s || "-";
   }
   function fitTone(score) {
     if (score >= 75) return PALETTE.ok;
@@ -145,7 +145,7 @@
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10.5);
       rgb(doc, PALETTE.ink);
-      const txt = String(value || "—");
+      const txt = String(value || "-");
       const lines = doc.splitTextToSize(txt, contentW - 130);
       doc.text(lines, M + 130, y);
       y += Math.max(16, lines.length * 14);
@@ -181,7 +181,7 @@
       doc.setFont("helvetica", "normal");
       rgb(doc, opts.color || PALETTE.ink);
       items.forEach(it => {
-        const lines = doc.splitTextToSize("• " + String(it), contentW - 8);
+        const lines = doc.splitTextToSize("- " + String(it), contentW - 8);
         lines.forEach(l => {
           newPageIfNeeded(14);
           doc.text(l, M + 4, y);
@@ -205,7 +205,7 @@
     kvRow("E-mail", candidate.email);
     kvRow("Telefone", candidate.phone);
     kvRow("Cidade / UF", (candidate.city || "") + (candidate.state ? " / " + candidate.state : ""));
-    kvRow("LinkedIn", candidate.linkedin || "—");
+    kvRow("LinkedIn", candidate.linkedin || "-");
     kvRow("Experiência", `${candidate.experienceYears || 0} anos e ${candidate.experienceMonths || 0} meses`);
 
     // ---- EXPERTISES ----
@@ -233,7 +233,7 @@
       sectionTitle("Formação");
       candidate.education.forEach(ed => {
         const line = [ed.degree, ed.institution, ed.year].filter(Boolean).join(" · ");
-        bodyText("• " + line);
+        bodyText("- " + line);
       });
     }
 
@@ -262,7 +262,7 @@
       const d = candidate.diagnosis;
       sectionTitle("Diagnóstico de perfil");
       kvRow("Emitido em", fmtDateTime(d.ts));
-      kvRow("Autor", d.author || "—");
+      kvRow("Autor", d.author || "-");
       kvRow("Score de diagnóstico", (d.score || 0) + "%");
       kvRow("Recomendação", ({ avancar: "Avançar", considerar: "Considerar", reprovar: "Reprovar" })[d.recommendation] || d.recommendation);
 
@@ -282,16 +282,34 @@
       };
       Object.entries(d.dimensions || {}).forEach(([k, v]) => {
         if (!v) return;
-        newPageIfNeeded(16);
+        newPageIfNeeded(18);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         rgb(doc, PALETTE.ink);
         doc.text(dimLabels[k] || k, M, y);
-        // estrelas
-        const stars = "★".repeat(v) + "☆".repeat(Math.max(0, 5 - v));
-        rgb(doc, PALETTE.gold);
-        doc.text(stars, M + 200, y);
-        y += 14;
+        // Barra visual de 5 segmentos (em vez de estrelas — jsPDF não renderiza ★ bem)
+        const barX = M + 220;
+        const barY = y - 8;
+        const segW = 14;
+        const segH = 10;
+        const gap  = 3;
+        for (let i = 0; i < 5; i++) {
+          if (i < v) {
+            fill(doc, PALETTE.gold);
+            draw(doc, PALETTE.goldD);
+          } else {
+            fill(doc, [245, 241, 232]); // cream
+            draw(doc, PALETTE.line);
+          }
+          doc.setLineWidth(0.4);
+          doc.roundedRect(barX + i * (segW + gap), barY, segW, segH, 2, 2, "FD");
+        }
+        // texto "X/5" à direita
+        rgb(doc, PALETTE.ink5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(`${v} / 5`, barX + 5 * (segW + gap) + 6, y);
+        y += 16;
       });
       y += 6;
 
@@ -312,7 +330,7 @@
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         rgb(doc, PALETTE.navy);
-        doc.text(`${c.author || "—"}`, M, y);
+        doc.text(`${c.author || "-"}`, M, y);
         doc.setFont("helvetica", "normal");
         rgb(doc, PALETTE.ink5);
         doc.text(fmtDateTime(c.ts), M + 200, y);
@@ -334,9 +352,9 @@
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         rgb(doc, PALETTE.ink);
-        const fromName = h.from ? stageOf(seed, h.from).name : "—";
+        const fromName = h.from ? stageOf(seed, h.from).name : "-";
         const toName = stageOf(seed, h.to).name;
-        const line = `${fmtDateTime(h.ts)}  ·  ${fromName} → ${toName}  ·  por ${h.by || "sistema"}`;
+        const line = `${fmtDateTime(h.ts)}  -  ${fromName} -> ${toName}  -  por ${h.by || "sistema"}`;
         doc.text(line, M, y, { maxWidth: contentW });
         y += 14;
       });
@@ -347,7 +365,7 @@
     kvRow("Criado em", fmtDateTime(candidate.createdAt));
     kvRow("Atualizado em", fmtDateTime(candidate.updatedAt));
     kvRow("Origem da análise", candidate.source === "claude" ? "Claude IA" : "Heurística offline");
-    kvRow("ID interno", candidate.id || "—");
+    kvRow("ID interno", candidate.id || "-");
 
     // ---- FOOTER (em todas as páginas) ----
     const pageCount = doc.getNumberOfPages();
