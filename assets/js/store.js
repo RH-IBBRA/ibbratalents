@@ -193,6 +193,36 @@
       cand.hiredAt = cand.hiredAt || nowIso();
     },
 
+    // ---- anotações do RH (notas estruturadas em thread)
+    addNote(id, text) {
+      const user = Store.getUser();
+      const all = this.getCandidates();
+      const idx = all.findIndex(x => x.id === id);
+      if (idx === -1) return null;
+      const c = all[idx];
+      c.notesList = Array.isArray(c.notesList) ? c.notesList : [];
+      const entry = {
+        id: "note-" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36),
+        ts: nowIso(),
+        author: user?.name || "anônimo",
+        role: user?.role || "rh",
+        text: String(text || "").trim()
+      };
+      if (!entry.text) return null;
+      c.notesList.unshift(entry);
+      c.updatedAt = nowIso();
+      this.setCandidates(all);
+      return entry;
+    },
+    removeNote(id, noteId) {
+      const all = this.getCandidates();
+      const idx = all.findIndex(x => x.id === id);
+      if (idx === -1) return;
+      all[idx].notesList = (all[idx].notesList || []).filter(n => n.id !== noteId);
+      all[idx].updatedAt = nowIso();
+      this.setCandidates(all);
+    },
+
     // ---- comentários da equipe
     addComment(id, text) {
       const user = Store.getUser();

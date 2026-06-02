@@ -14,6 +14,8 @@
     funilStateFilter: "all",
     funilSeniorityFilter: "all",
     pipeBoardMode: "stage",
+    planilhaStageFilter: "all",
+    planilhaVacancyFilter: "all",
     currentFile: null,
     // Import do Notion (wizard em mem\u00f3ria)
     notion: { rows: [], pdfs: [], matches: [] }
@@ -522,6 +524,9 @@
           ${byStage
             ? stages.map(st => {
                 const col = filtered.filter(c => c.stage === st.id);
+                const MAX = 4;
+                const visible = col.slice(0, MAX);
+                const hidden = col.length - visible.length;
                 return `
                   <div class="kcol kcol-${st.tone}" data-stage="${st.id}">
                     <div class="kcol-head">
@@ -530,8 +535,9 @@
                     </div>
                     <div class="kcol-desc">${escapeHtml(st.desc)}</div>
                     <div class="kcol-list">
-                      ${col.length ? col.map(c => candidateCardHTML(c)).join("") : `<div class="kcol-empty">Sem candidatos</div>`}
+                      ${visible.length ? visible.map(c => candidateCardHTML(c)).join("") : `<div class="kcol-empty">Sem candidatos</div>`}
                     </div>
+                    ${col.length ? `<button type="button" class="kcol-seeall" data-stage="${st.id}">${hidden > 0 ? `Ver todos os ${col.length} →` : "Ver na planilha →"}</button>` : ""}
                   </div>`;
               }).join("")
             : (() => {
@@ -542,7 +548,11 @@
                 }));
                 const orphans = filtered.filter(c => !State.seed.vacancies.some(v => v.id === c.fitVacancyId));
                 if (orphans.length) groups.push({ id: "_none", title: "Sem vaga sugerida", list: orphans });
-                return groups.map(g => `
+                const MAX = 4;
+                return groups.map(g => {
+                  const visible = g.list.slice(0, MAX);
+                  const hidden = g.list.length - visible.length;
+                  return `
                   <div class="kcol kcol-navy" data-vacancy="${g.id}">
                     <div class="kcol-head">
                       <div class="kcol-title">${escapeHtml(g.title)}</div>
@@ -550,12 +560,13 @@
                     </div>
                     <div class="kcol-desc">ordenado por score decrescente</div>
                     <div class="kcol-list">
-                      ${g.list.length ? g.list.map(c => candidateCardHTML(c, { showStageBadge: true })).join("") : `<div class="kcol-empty">Sem candidatos</div>`}
+                      ${visible.length ? visible.map(c => candidateCardHTML(c, { showStageBadge: true })).join("") : `<div class="kcol-empty">Sem candidatos</div>`}
                     </div>
-                  </div>`).join("");
+                    ${g.list.length ? `<button type="button" class="kcol-seeall" data-vacancy="${g.id}">${hidden > 0 ? `Ver todos os ${g.list.length} →` : "Ver na planilha →"}</button>` : ""}
+                  </div>`;
+                }).join("");
               })()
           }
-        </div>
       </div>`;
 
     $$("#filters-vacancy .chip").forEach(c =>
@@ -587,6 +598,14 @@
     if (senSel) senSel.addEventListener("change", () => { State.funilSeniorityFilter = senSel.value; renderFunil(); });
     $$(".board-toggle .toggle-btn").forEach(b =>
       b.addEventListener("click", () => { State.pipeBoardMode = b.dataset.mode; renderFunil(); }));
+    // "Ver todos →" da coluna do funil leva pra planilha com filtro aplicado
+    $$(".kcol-seeall").forEach(b => b.addEventListener("click", () => {
+      if (b.dataset.stage) {
+        nav("planilha", { planilhaStageFilter: b.dataset.stage, planilhaVacancyFilter: "all" });
+      } else if (b.dataset.vacancy) {
+        nav("planilha", { planilhaVacancyFilter: b.dataset.vacancy, planilhaStageFilter: "all" });
+      }
+    }));
     $$('[data-nav="analise"]', $("#view-funil")).forEach(b =>
       b.addEventListener("click", () => nav("analise")));
     $$(".kcard").forEach(card => {
@@ -1420,13 +1439,33 @@
 
   // ---------- PLANILHA ----------
   function renderPlanilha() {
-    const cands = Store.getCandidates();
+    const all = Store.getCandidates();
+    const stageF = State.planilhaStageFilter || "all";
+    const vacF   = State.planilhaVacancyFilter || "all";
+    const cands = all.filter(c => {
+      if (stageF !== "all" && c.stage !== stageF) return false;
+      if (vacF   !== "all" && c.fitVacancyId !== vacF) return false;
+      return true;
+    });
+    const stageName = stageF !== "all" ? (stageOf(stageF) || {}).name : null;
+    const vacancyName = vacF !== "all" ? (vacancyOf(vacF) || {}).title : null;
+    const hasFilter = stageName || vacancyName;
     $("#view-planilha").innerHTML = `
       <div class="container">
+        ${hasFilter ? `
+          <div class="planilha-filter-banner">
+            <div>
+              Filtro ativo:
+              ${stageName ? `<span class="filter-pill">Est\u00e1gio: <strong>${escapeHtml(stageName)}</strong></span>` : ""}
+              ${vacancyName ? `<span class="filter-pill">Vaga: <strong>${escapeHtml(vacancyName)}</strong></span>` : ""}
+              <span class="muted small">\u00b7 ${cands.length} de ${all.length} candidatos</span>
+            </div>
+            <button class="btn btn-ghost-on-light btn-sm" id="clear-planilha-filter">\u00d7 Limpar filtro</button>
+          </div>` : ""}
         <div class="section-head">
           <div>
             <div class="eyebrow gold">Planilha consolidada</div>
-            <h1>Banco de candidatos</h1>
+            <h1>Banco de candidatos${hasFilter ? ` <span class="muted" style="font-weight:400">\u2014 vista filtrada</span>` : ""}</h1>
             <p class="lead">Todos os campos centrais em uma vis\u00e3o tabular. Exporte em CSV para abrir em Excel/Sheets.</p>
           </div>
           <div class="head-actions">
@@ -1468,6 +1507,12 @@
     $("#export-csv").addEventListener("click", exportCSV);
     $("#export-zip").addEventListener("click", exportZip);
     $("#tbl-search").addEventListener("input", e => filterTable(e.target.value));
+    const clearFilterBtn = $("#clear-planilha-filter");
+    if (clearFilterBtn) clearFilterBtn.addEventListener("click", () => {
+      State.planilhaStageFilter = "all";
+      State.planilhaVacancyFilter = "all";
+      renderPlanilha();
+    });
     $$(".tbl-open").forEach(a => a.addEventListener("click", e => {
       e.preventDefault();
       nav("candidato", { currentCandidateId: a.dataset.id });
@@ -2270,8 +2315,29 @@
           <aside class="cand-aside">
             <div class="card">
               <h3>Anota\u00e7\u00f5es do RH</h3>
-              <textarea id="cand-notes" placeholder="Impress\u00f5es de entrevistas, refer\u00eancias, decis\u00f5es...">${escapeHtml(c.notes || "")}</textarea>
-              <button class="btn btn-primary btn-sm" id="save-notes">Salvar anota\u00e7\u00f5es</button>
+              <div class="notes-form">
+                <textarea id="cand-notes" placeholder="Impress\u00f5es de entrevistas, refer\u00eancias, decis\u00f5es..."></textarea>
+                <button class="btn btn-primary btn-sm" id="save-notes">Salvar anota\u00e7\u00e3o</button>
+              </div>
+              ${(c.notesList || []).length ? `
+                <div class="notes-thread">
+                  ${c.notesList.map(n => `
+                    <div class="note-item">
+                      <div class="note-head">
+                        <div><strong>${escapeHtml(n.author)}</strong> <span class="muted small">\u00b7 ${escapeHtml(n.role || "")}</span></div>
+                        <div class="muted small">${fmtDateTime(n.ts)}</div>
+                      </div>
+                      <p class="note-text">${escapeHtml(n.text)}</p>
+                      <button class="linklike note-del" data-note="${n.id}">remover</button>
+                    </div>`).join("")}
+                </div>
+              ` : ""}
+              ${c.notes && c.notes.trim() ? `
+                <div class="notes-legacy">
+                  <div class="block-label">Anota\u00e7\u00e3o anterior (formato antigo)</div>
+                  <p class="muted small">${escapeHtml(c.notes)}</p>
+                </div>
+              ` : ""}
             </div>
             ${(c.languages || []).length ? `<div class="card"><h3>Idiomas</h3><div class="tag-grid">${c.languages.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("")}</div></div>` : ""}
             ${(c.education || []).length ? `<div class="card"><h3>Forma\u00e7\u00e3o</h3><ul class="bullet-list">${c.education.map(ed => `<li>${escapeHtml([ed.degree, ed.institution, ed.year].filter(Boolean).join(" \u00b7 "))}</li>`).join("")}</ul></div>` : ""}
@@ -2302,9 +2368,17 @@
       if (fname) showToast("Curr\u00edculo original baixado: " + fname, "success");
     });
     $("#save-notes").addEventListener("click", () => {
-      Store.updateCandidate(c.id, { notes: $("#cand-notes").value });
-      showToast("Anota\u00e7\u00f5es salvas.", "success");
+      const txt = $("#cand-notes").value.trim();
+      if (!txt) { showToast("Escreva a anota\u00e7\u00e3o antes de salvar.", "warn"); return; }
+      Store.addNote(c.id, txt);
+      showToast("Anota\u00e7\u00e3o adicionada ao hist\u00f3rico.", "success");
+      renderCandidato();
     });
+    $$(".note-del").forEach(b => b.addEventListener("click", () => {
+      if (!confirm("Remover esta anota\u00e7\u00e3o?")) return;
+      Store.removeNote(c.id, b.dataset.note);
+      renderCandidato();
+    }));
     $("#del-cand").addEventListener("click", () => {
       if (confirm(`Excluir o candidato ${c.fullName}? Essa a\u00e7\u00e3o n\u00e3o pode ser desfeita.`)) {
         Store.removeCandidate(c.id);
