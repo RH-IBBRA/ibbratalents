@@ -213,6 +213,90 @@ ${certs}
     return n;
   }
 
+  // -------- Constru\u00e7\u00e3o de an\u00e1lise (justificativa + destaques + red flags) sem IA --------
+  function buildHeuristicAnalysis({ profile, vacancy, score, seed }) {
+    const yrs = profile.experienceYears || 0;
+    const mns = profile.experienceMonths || 0;
+    const totalMonths = yrs * 12 + mns;
+    const certIds = new Set((profile.certifications || []).map(c => c.id));
+    const expIds  = new Set((profile.expertises    || []).map(e => e.id));
+    const certName = id => (seed.certifications || []).find(c => c.id === id)?.name || id;
+    const expName  = id => (seed.expertises    || []).find(e => e.id === id)?.name || id;
+
+    // Texto de experi\u00eancia ("5 anos e 6 meses" / "0 meses" / "1 ano")
+    const expStr = (() => {
+      if (yrs === 0 && mns === 0) return "sem tempo de experi\u00eancia identificado";
+      const parts = [];
+      if (yrs > 0) parts.push(yrs === 1 ? "1 ano" : `${yrs} anos`);
+      if (mns > 0) parts.push(mns === 1 ? "1 m\u00eas" : `${mns} meses`);
+      return parts.join(" e ") + " de experi\u00eancia";
+    })();
+
+    // Match com a faixa de tempo da vaga
+    const inRange  = totalMonths >= vacancy.months.min && totalMonths <= vacancy.months.max;
+    const overQual = totalMonths > vacancy.months.max;
+    const underQual = totalMonths < vacancy.months.min;
+
+    // Match de expertises-alvo
+    const targets = vacancy.expertiseTargets || [];
+    const matchedTargets = targets.filter(t => expIds.has(t));
+
+    // Cidade IBBRA
+    const presencialCities = ["goi\u00e2nia","goiania","bras\u00edlia","brasilia","s\u00e3o paulo","sao paulo"];
+    const isPresencial = presencialCities.includes((profile.city || "").toLowerCase());
+
+    // ---- Justificativa ----
+    const just = [];
+    just.push(`Perfil identificado com ${expStr}.`);
+    if (matchedTargets.length) {
+      just.push(`Expertises detectadas (${matchedTargets.length} de ${targets.length} desejadas pela vaga): ${matchedTargets.map(expName).join(", ")}.`);
+    } else if (targets.length) {
+      just.push(`Nenhuma das ${targets.length} expertises-alvo da vaga foi identificada no texto.`);
+    }
+    if (certIds.size) {
+      just.push(`Certifica\u00e7\u00f5es reconhecidas: ${[...certIds].map(certName).join(", ")}.`);
+    }
+    if (inRange)        just.push(`Tempo de experi\u00eancia dentro do range da vaga (${vacancy.months.min}\u2013${vacancy.months.max} meses).`);
+    else if (overQual)  just.push(`Tempo acima do range da vaga (>${vacancy.months.max} meses) \u2014 possivelmente over-qualified.`);
+    else if (underQual) just.push(`Tempo abaixo do m\u00ednimo da vaga (<${vacancy.months.min} meses).`);
+    if (isPresencial)   just.push(`Cidade compat\u00edvel com atua\u00e7\u00e3o presencial IBBRA (${profile.city}).`);
+    just.push(`Score final de ader\u00eancia: ${score}%.`);
+
+    // ---- Destaques ----
+    const highlights = [];
+    if (yrs >= 5)                              highlights.push(`Tempo de experi\u00eancia s\u00f3lido (${yrs}+ anos)`);
+    if (certIds.has("cfp"))                    highlights.push("CFP\u00ae reconhecido (top tier do mercado de planejamento financeiro)");
+    if (certIds.has("cfa"))                    highlights.push("CFA\u00ae reconhecido (top tier internacional)");
+    if (certIds.has("cga"))                    highlights.push("CGA \u2014 diferencial t\u00e9cnico em gest\u00e3o de carteiras");
+    if (certIds.size >= 3)                     highlights.push(`M\u00faltiplas certifica\u00e7\u00f5es (${certIds.size}) \u2014 perfil tecnicamente robusto`);
+    if (matchedTargets.length === targets.length && targets.length > 0)
+                                                highlights.push("Cobertura completa das expertises-alvo da vaga");
+    if (matchedTargets.length >= 3)            highlights.push(`${matchedTargets.length} expertises core identificadas`);
+    if (isPresencial)                          highlights.push(`Em ${profile.city} \u2014 atende ao requisito presencial IBBRA`);
+    if (profile.linkedin)                      highlights.push("LinkedIn p\u00fablico dispon\u00edvel para verifica\u00e7\u00e3o");
+
+    // ---- Red flags ----
+    const redFlags = [];
+    if (yrs === 0 && mns === 0)                redFlags.push("N\u00e3o foi poss\u00edvel inferir tempo de experi\u00eancia no texto");
+    if (underQual && vacancy.months.min > 0)   redFlags.push(`Tempo de experi\u00eancia (${totalMonths} meses) abaixo do m\u00ednimo da vaga (${vacancy.months.min}m)`);
+    if (targets.length && matchedTargets.length === 0)
+                                                redFlags.push("Nenhuma expertise-alvo da vaga foi detectada \u2014 pode ser perfil destoante");
+    const isFinancialVacancy = (vacancy.expertiseTargets || []).some(t => ["wealth_management","investimentos","previdencia","planejamento_sucessorio","high_ticket"].includes(t));
+    if (isFinancialVacancy && certIds.size === 0) redFlags.push("Sem certifica\u00e7\u00e3o financeira (ANBIMA/CFP/CFA/CEA/CPA) identificada para uma vaga do setor");
+    if (vacancy.id === "senior"  && !(certIds.has("cfp") || certIds.has("cfa") || certIds.has("cga")))
+                                                redFlags.push("Sem CFP\u00ae/CFA\u00ae/CGA \u2014 esperado para n\u00edvel S\u00eanior");
+    if (!isPresencial && profile.city)         redFlags.push(`Cidade ${profile.city} fora dos polos presenciais (Goi\u00e2nia / Bras\u00edlia / SP)`);
+    if (score < 40)                            redFlags.push("Score de ader\u00eancia baixo \u2014 revisar manualmente antes de avan\u00e7ar");
+    if (!profile.email)                        redFlags.push("E-mail n\u00e3o detectado no curr\u00edculo");
+    if (!profile.phone)                        redFlags.push("Telefone n\u00e3o detectado no curr\u00edculo");
+
+    return {
+      justification: just.join(" "),
+      highlights: highlights.slice(0, 8),
+      redFlags:   redFlags.slice(0, 8)
+    };
+  }
+
   // -------- Fallback heur\u00edstico (sem API) --------
   function heuristic(resume, seed) {
     const txt = " " + resume.replace(/\s+/g, " ").toLowerCase() + " ";
@@ -307,7 +391,7 @@ ${certs}
       city: cityMatch ? cityMatch[1] : ""
     }, vacancy, seed);
 
-    return {
+    const profile = {
       fullName: nameLine || "",
       phone: phoneMatch ? phoneMatch[0].trim() : "",
       email: emailMatch ? emailMatch[0] : "",
@@ -319,14 +403,19 @@ ${certs}
       summary: "",
       expertises: expHits,
       certifications: certHits,
+    };
+    const analysis = buildHeuristicAnalysis({ profile, vacancy, score, seed });
+
+    return {
+      ...profile,
       languages: [],
       education: [],
       fitVacancyId: vacancy.id,
       fitSeniority: vacancy.seniority,
       fitScore: score,
-      fitJustification: "An\u00e1lise heur\u00edstica offline (configure a chave de API para an\u00e1lise inteligente).",
-      redFlags: [],
-      highlights: []
+      fitJustification: analysis.justification,
+      highlights: analysis.highlights,
+      redFlags: analysis.redFlags
     };
   }
 
