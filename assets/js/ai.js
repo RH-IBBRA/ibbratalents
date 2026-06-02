@@ -138,7 +138,15 @@ ${certs}
     if (!raw) return "";
     const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 
-    // Estrat\u00e9gia 1 \u2014 Anchor "Experi\u00eancia": nome geralmente est\u00e1 nas 6 linhas anteriores
+    // ESTRAT\u00c9GIA 0 \u2014 Nome no topo (padr\u00e3o cl\u00e1ssico de CV brasileiro):
+    // Primeira linha 1-3 que pare\u00e7a nome ganha prioridade.
+    // Cobre CVs onde nome \u00e9 literalmente a primeira linha (formato Word/Doc tradicional).
+    for (let i = 0; i < Math.min(3, lines.length); i++) {
+      const cleaned = cleanName(lines[i]);
+      if (looksLikeNameLine(cleaned)) return cleaned;
+    }
+
+    // ESTRAT\u00c9GIA 1 \u2014 Anchor "Experi\u00eancia": nome geralmente est\u00e1 nas 8 linhas anteriores
     // (padr\u00e3o LinkedIn: ... skills ... certs ... NOME ... headline ... cidade ... Experi\u00eancia)
     for (let i = 0; i < lines.length; i++) {
       if (SECTION_EXP_ANCHOR.test(lines[i])) {
@@ -150,7 +158,7 @@ ${certs}
       }
     }
 
-    // Estrat\u00e9gia 2 \u2014 Anchor cidade/UF: walks back na busca do nome
+    // ESTRAT\u00c9GIA 2 \u2014 Anchor cidade/UF: walks back na busca do nome
     for (let i = 1; i < Math.min(lines.length, 40); i++) {
       if (CITY_ANCHOR.test(lines[i])) {
         for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
@@ -161,13 +169,22 @@ ${certs}
       }
     }
 
-    // Estrat\u00e9gia 3 \u2014 Scan top: pega a primeira linha que parece nome
+    // ESTRAT\u00c9GIA 3 \u2014 Scan top: pega a primeira linha que parece nome
     for (const line of lines.slice(0, 15)) {
       const cleaned = cleanName(line);
       if (looksLikeNameLine(cleaned)) return cleaned;
     }
 
-    // Fallback final: primeira linha n\u00e3o-cabe\u00e7alho que tenha 2+ palavras
+    // ESTRAT\u00c9GIA 4 \u2014 Linha "Nome: Jo\u00e3o da Silva" mesmo com dois-pontos
+    for (const line of lines.slice(0, 20)) {
+      const m = line.match(/^(?:nome\s+completo|nome|name|full\s+name)\s*[:\-\u2013]\s*(.+)$/i);
+      if (m) {
+        const cleaned = cleanName(m[1]);
+        if (cleaned && cleaned.split(/\s+/).length >= 2) return cleaned;
+      }
+    }
+
+    // FALLBACK \u2014 primeira linha n\u00e3o-cabe\u00e7alho que tenha 2+ palavras
     for (const line of lines.slice(0, 15)) {
       if (!line.includes("@") && !/\d/.test(line) && !NAME_HEADER_BLOCKLIST.test(line)
           && !SKILL_NOISE_WORDS.test(line) && line.split(/\s+/).length >= 2 && line.length <= 80) {
@@ -223,18 +240,62 @@ ${certs}
       return re.test(raw);
     }).map(c => ({ id: c.id, evidence: c.name }));
 
-    // escolhe vaga: prioridade = mais expertises target em comum, desempate por tempo na faixa
+    // escolhe vaga: combinação ponderada de expertise + tempo + certificações
     const totalMonths = yrs * 12 + mns;
     const expHitIds = new Set(expHits.map(e => e.id));
+    const certHitIds = new Set(certHits.map(c => c.id));
+
+    // Certificações que indicam vaga financeira (e o tier provável)
+    const seniorCerts = new Set(["cfp", "cfa", "cga", "caia", "frm"]);
+    const plenoCerts  = new Set(["cea", "cpa20", "cnpi"]);
+    const juniorCerts = new Set(["cpa10", "ancord"]);
+    const hasSeniorCert = [...certHitIds].some(id => seniorCerts.has(id));
+    const hasPlenoCert  = [...certHitIds].some(id => plenoCerts.has(id));
+    const hasJuniorCert = [...certHitIds].some(id => juniorCerts.has(id));
+
     const ranked = seed.vacancies.map(v => {
-      const targetHit = (v.expertiseTargets || []).filter(t => expHitIds.has(t)).length;
-      const inRange = totalMonths >= v.months.min && totalMonths <= v.months.max ? 1 : 0;
-      return { v, score: targetHit * 10 + inRange * 2 + (v.expertiseTargets?.length ? 0 : 0) };
+      // 1) Hit de expertises-alvo: peso 10 por match
+      const expTargets = v.expertiseTargets || [];
+      const targetHit = expTargets.filter(t => expHitIds.has(t)).length;
+      const expScore = targetHit * 10;
+
+      // 2) Tempo na faixa: pontuação contínua (pico no meio, decai nas bordas)
+      let timeScore = 0;
+      if (v.months) {
+        if (totalMonths >= v.months.min && totalMonths <= v.months.max) {
+          // está na faixa: 5 pontos
+          timeScore = 5;
+        } else if (totalMonths < v.months.min) {
+          // abaixo do mínimo: penaliza linearmente
+          timeScore = Math.max(-5, -(v.months.min - totalMonths) / 6);
+        } else {
+          // acima do máximo: penaliza menos (over-qualified ainda é match parcial)
+          timeScore = Math.max(-3, -(totalMonths - v.months.max) / 12);
+        }
+      }
+
+      // 3) Certificações alinhadas ao tier da vaga (só pra vagas FA)
+      let certScore = 0;
+      const isFaVacancy = ["fa_trainee1","fa_trainee2","junior","pleno","senior"].includes(v.id);
+      if (isFaVacancy) {
+        if (v.id === "senior"  && hasSeniorCert) certScore = 8;
+        else if (v.id === "pleno" && hasPlenoCert) certScore = 6;
+        else if (v.id === "pleno" && hasSeniorCert) certScore = 4;
+        else if (v.id === "junior" && hasJuniorCert) certScore = 4;
+        else if (v.id === "junior" && hasPlenoCert) certScore = 2;
+        else if (v.id.startsWith("fa_trainee") && hasJuniorCert) certScore = 2;
+      }
+
+      // 4) Bônus pequeno por vaga ter expertiseTargets (evita empate com vagas de back-office vazias)
+      const targetsBonus = expTargets.length > 0 ? 0.5 : 0;
+
+      return { v, score: expScore + timeScore + certScore + targetsBonus,
+               debug: { expScore, timeScore, certScore, targetHit } };
     }).sort((a, b) => b.score - a.score);
+
     let vacancy = ranked[0]?.v;
-    // se ninguém pontuou (zero matches), cai num fallback genérico:
-    // candidato com 0+ meses sem matching vai pra Trainee, com 6m+ vai pra junior, etc.
-    if (!ranked[0] || ranked[0].score === 0) {
+    // se ninguém pontuou positivamente, escolhe pela faixa de tempo
+    if (!ranked[0] || ranked[0].score <= 0) {
       vacancy = seed.vacancies.find(v => totalMonths >= v.months.min && totalMonths <= v.months.max)
              || seed.vacancies[0];
     }
@@ -321,18 +382,33 @@ ${certs}
   }
 
   function certRegex(id) {
-    // [\s\-–]+ é tolerante a espaço, hífen e en-dash entre tokens
+    // [\s\-–_]+ é tolerante a espaço, hífen, en-dash e underscore entre tokens
+    // (?:®|\(R\))? — opcional sufixo de marca registrada
     const map = {
-      cpa10:  /\bCPA[\s\-–]*10\b/i,
-      cpa20:  /\bCPA[\s\-–]*20\b/i,
-      cea:    /\bCEA\b/,
-      cfp:    /\bCFP\b/,
-      cga:    /\bCGA\b/,
-      cnpi:   /\bCNPI\b/,
-      ancord: /ANCORD|\bAAI\b/i,
-      cfa:    /\bCFA\b/,
-      frm:    /\bFRM\b/,
-      susep:  /\bSUSEP\b|corretor[\s\-–]+de[\s\-–]+seguros/i
+      // ANBIMA
+      cpa10:  /\bCPA[\s\-–_]*10\b/i,
+      cpa20:  /\bCPA[\s\-–_]*20\b/i,
+      cea:    /\bCEA(?:®)?\b|certifica[çc][ãa]o\s+especialista\s+em?\s+investimentos/i,
+      cga:    /\bCGA\b|certifica[çc][ãa]o\s+de\s+gestores/i,
+      cge:    /\bCGE\b/,
+      // Planejar
+      cfp:    /\bCFP(?:®|\(R\))?\b|certified\s+financial\s+planner/i,
+      // APIMEC
+      cnpi:   /\bCNPI\b(?![\-–])/i,
+      cnpip:  /\bCNPI[\s\-–]*P\b/i,
+      cnpit:  /\bCNPI[\s\-–]*T\b/i,
+      // ANCORD
+      ancord: /\bANCORD\b|\bAAI\b|agente\s+aut[oô]nomo\s+de\s+investimentos/i,
+      // Internacionais
+      cfa:    /\bCFA(?:®)?\b|chartered\s+financial\s+analyst|cfa\s+charterholder/i,
+      caia:   /\bCAIA\b|chartered\s+alternative\s+investment\s+analyst/i,
+      frm:    /\bFRM\b|financial\s+risk\s+manager/i,
+      // Outras
+      susep:  /\bSUSEP\b|corretor[\s\-–]+de[\s\-–]+seguros/i,
+      mba:    /\b(?:MBA|p[oó]s[\s\-–]*gradua[çc][ãa]o)\s+(?:em\s+)?(?:finan[çc]as|gest[ãa]o|investimentos|wealth|patrim[ôo]nio)/i,
+      oab:    /\bOAB[\s\-–]*(?:[A-Z]{2})?\b|exame\s+de\s+ordem/i,
+      crc:    /\bCRC[\s\-–]*(?:[A-Z]{2})?\b|contador\s+registrado|contabilista\s+registrado/i,
+      pmp:    /\bPMP\b|project\s+management\s+professional/i
     };
     return map[id] || /a^/;
   }

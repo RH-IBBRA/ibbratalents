@@ -2,7 +2,7 @@
 // Baseado na metodologia IBBRA Full Family Office (ibbra.com.br) e na r\u00e9gua de carreira de Financial Advisor.
 
 window.IBBRA_RH_SEED = {
-  version: 6, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
+  version: 7, // incrementar quando vagas/estágios/expertises do seed mudarem (força refresh no navegador)
   brand: {
     name: "IBBRA Full Family Office",
     product: "Talents \u00b7 Recrutamento, Sele\u00e7\u00e3o, Treinamento & Desenvolvimento",
@@ -231,16 +231,30 @@ window.IBBRA_RH_SEED = {
 
   // Certifica\u00e7\u00f5es do mercado financeiro brasileiro
   certifications: [
-    { id: "cpa10",   name: "CPA-10",  issuer: "ANBIMA",  weight: 1 },
-    { id: "cpa20",   name: "CPA-20",  issuer: "ANBIMA",  weight: 2 },
-    { id: "cea",     name: "CEA",     issuer: "ANBIMA",  weight: 3 },
-    { id: "cfp",     name: "CFP\u00ae",    issuer: "Planejar", weight: 4 },
-    { id: "cga",     name: "CGA",     issuer: "ANBIMA",  weight: 4 },
-    { id: "cnpi",    name: "CNPI",    issuer: "APIMEC",  weight: 3 },
-    { id: "ancord",  name: "ANCORD AAI", issuer: "ANCORD", weight: 2 },
-    { id: "cfa",     name: "CFA\u00ae",    issuer: "CFA Institute", weight: 5 },
-    { id: "frm",     name: "FRM",     issuer: "GARP",    weight: 4 },
-    { id: "susep",   name: "SUSEP / Corretor de Seguros", issuer: "SUSEP", weight: 2 }
+    // ANBIMA \u2014 mais comuns no mercado brasileiro
+    { id: "cpa10",   name: "CPA-10",         issuer: "ANBIMA",       weight: 1 },
+    { id: "cpa20",   name: "CPA-20",         issuer: "ANBIMA",       weight: 2 },
+    { id: "cea",     name: "CEA",            issuer: "ANBIMA",       weight: 3 },
+    { id: "cga",     name: "CGA",            issuer: "ANBIMA",       weight: 4 },
+    { id: "cge",     name: "CGE",            issuer: "ANBIMA",       weight: 3 },
+    // Planejar
+    { id: "cfp",     name: "CFP\u00ae",           issuer: "Planejar",     weight: 4 },
+    // APIMEC
+    { id: "cnpi",    name: "CNPI",           issuer: "APIMEC",       weight: 3 },
+    { id: "cnpip",   name: "CNPI-P",         issuer: "APIMEC",       weight: 3 },
+    { id: "cnpit",   name: "CNPI-T",         issuer: "APIMEC",       weight: 3 },
+    // ANCORD
+    { id: "ancord",  name: "ANCORD AAI",     issuer: "ANCORD",       weight: 2 },
+    // Internacionais
+    { id: "cfa",     name: "CFA\u00ae",           issuer: "CFA Institute", weight: 5 },
+    { id: "caia",    name: "CAIA",           issuer: "CAIA Assoc.",  weight: 4 },
+    { id: "frm",     name: "FRM",            issuer: "GARP",         weight: 4 },
+    // Outras
+    { id: "susep",   name: "SUSEP / Corretor de Seguros", issuer: "SUSEP", weight: 2 },
+    { id: "mba",     name: "MBA / P\u00f3s em Finan\u00e7as",       issuer: "Univ.", weight: 2 },
+    { id: "oab",     name: "OAB",            issuer: "OAB",          weight: 2 },
+    { id: "crc",     name: "CRC (Contador)", issuer: "CRC",          weight: 2 },
+    { id: "pmp",     name: "PMP",            issuer: "PMI",          weight: 2 }
   ],
 
   // Compet\u00eancias universais avaliadas por entrevistadores (Soft Skills)

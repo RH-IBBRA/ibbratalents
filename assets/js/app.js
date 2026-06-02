@@ -10,6 +10,9 @@
     analysis: null,
     funilFilter: "all",
     funilQuickFilter: "all",
+    funilSearch: "",
+    funilStateFilter: "all",
+    funilSeniorityFilter: "all",
     pipeBoardMode: "stage",
     currentFile: null,
     // Import do Notion (wizard em mem\u00f3ria)
@@ -420,9 +423,32 @@
   function renderFunil() {
     const cands = Store.getCandidates();
     const stages = State.seed.pipeline;
-    const filteredByVacancy = State.funilFilter === "all" ? cands : cands.filter(c => c.fitVacancyId === State.funilFilter);
+    let filteredByVacancy = State.funilFilter === "all" ? cands : cands.filter(c => c.fitVacancyId === State.funilFilter);
+    // Filtro por estado
+    if (State.funilStateFilter !== "all") {
+      filteredByVacancy = filteredByVacancy.filter(c => (c.state || "").toUpperCase() === State.funilStateFilter);
+    }
+    // Filtro por senioridade
+    if (State.funilSeniorityFilter !== "all") {
+      filteredByVacancy = filteredByVacancy.filter(c => c.fitSeniority === State.funilSeniorityFilter);
+    }
+    // Busca por nome, e-mail, telefone, cidade, expertise, certificação
+    const searchTerm = (State.funilSearch || "").toLowerCase().trim();
+    if (searchTerm) {
+      filteredByVacancy = filteredByVacancy.filter(c => {
+        const haystack = [
+          c.fullName, c.email, c.phone, c.city, c.state, c.linkedin,
+          ...(c.expertises || []).map(e => expertiseName(e.id || e)),
+          ...(c.certifications || []).map(e => certName(e.id || e))
+        ].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(searchTerm);
+      });
+    }
     const filtered = applyQuickFilter(filteredByVacancy, State.funilQuickFilter);
     const byStage = State.pipeBoardMode === "stage";
+
+    // Estados únicos no banco (pra dropdown)
+    const allStates = Array.from(new Set(cands.map(c => (c.state || "").toUpperCase()).filter(Boolean))).sort();
 
     const quickFilters = [
       { id: "all",    label: "Todos" },
@@ -470,6 +496,28 @@
           </div>
         </div>
 
+        <div class="funil-search-row">
+          <div class="search-box">
+            <span class="search-icon">\ud83d\udd0d</span>
+            <input type="search" id="funil-search" placeholder="Buscar por nome, e-mail, telefone, cidade, expertise ou certifica\u00e7\u00e3o..." value="${escapeHtml(State.funilSearch || "")}" />
+            ${State.funilSearch ? `<button class="search-clear" id="funil-search-clear" title="Limpar">\u00d7</button>` : ""}
+          </div>
+          <select id="filter-state" class="funil-select" title="Filtrar por estado">
+            <option value="all">Todos os estados</option>
+            ${allStates.map(s => `<option value="${s}" ${State.funilStateFilter === s ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+          <select id="filter-seniority" class="funil-select" title="Filtrar por senioridade">
+            <option value="all">Todas as senioridades</option>
+            <option value="estagiario" ${State.funilSeniorityFilter === "estagiario" ? "selected" : ""}>Estagi\u00e1rio/Trainee</option>
+            <option value="junior"     ${State.funilSeniorityFilter === "junior" ? "selected" : ""}>J\u00fanior</option>
+            <option value="pleno"      ${State.funilSeniorityFilter === "pleno" ? "selected" : ""}>Pleno</option>
+            <option value="senior"     ${State.funilSeniorityFilter === "senior" ? "selected" : ""}>S\u00eanior</option>
+          </select>
+          <div class="funil-result-count">
+            ${filtered.length} de ${cands.length} candidatos
+          </div>
+        </div>
+
         <div class="kanban ${byStage ? "by-stage" : "by-vacancy"}">
           ${byStage
             ? stages.map(st => {
@@ -514,6 +562,29 @@
       c.addEventListener("click", () => { State.funilFilter = c.dataset.v; renderFunil(); }));
     $$("#filters-quick .chip-quick").forEach(c =>
       c.addEventListener("click", () => { State.funilQuickFilter = c.dataset.q; renderFunil(); }));
+    const searchInput = $("#funil-search");
+    if (searchInput) {
+      searchInput.addEventListener("input", e => {
+        State.funilSearch = e.target.value;
+        // re-renderiza com debounce leve pra não travar
+        clearTimeout(searchInput._t);
+        searchInput._t = setTimeout(() => {
+          const focused = document.activeElement === searchInput;
+          const pos = searchInput.selectionStart;
+          renderFunil();
+          if (focused) {
+            const newInput = $("#funil-search");
+            if (newInput) { newInput.focus(); newInput.setSelectionRange(pos, pos); }
+          }
+        }, 200);
+      });
+    }
+    const searchClear = $("#funil-search-clear");
+    if (searchClear) searchClear.addEventListener("click", () => { State.funilSearch = ""; renderFunil(); });
+    const stateSel = $("#filter-state");
+    if (stateSel) stateSel.addEventListener("change", () => { State.funilStateFilter = stateSel.value; renderFunil(); });
+    const senSel = $("#filter-seniority");
+    if (senSel) senSel.addEventListener("change", () => { State.funilSeniorityFilter = senSel.value; renderFunil(); });
     $$(".board-toggle .toggle-btn").forEach(b =>
       b.addEventListener("click", () => { State.pipeBoardMode = b.dataset.mode; renderFunil(); }));
     $$('[data-nav="analise"]', $("#view-funil")).forEach(b =>
@@ -537,12 +608,24 @@
 
   function candidateCardHTML(c, opts = {}) {
     const st = stageOf(c.stage);
+    const fit = c.fitScore || 0;
+    const fitClass = fit >= 75 ? "high" : fit >= 50 ? "mid" : "low";
     return `
       <article class="kcard" data-id="${c.id}">
-        <div class="kcard-name">${escapeHtml(c.fullName || "Sem nome")}</div>
+        <div class="kcard-top">
+          <div class="kcard-avatar">${initials(c.fullName)}</div>
+          <div class="kcard-name">${escapeHtml(c.fullName || "Sem nome")}</div>
+          ${fit > 0 ? `<span class="kcard-fit kcard-fit-${fitClass}" title="Score de ader\u00eancia">${fit}%</span>` : ""}
+        </div>
         <div class="kcard-rows">
-          <div class="kcard-row"><span class="kcard-key">Telefone</span><span class="kcard-val">${escapeHtml(c.phone || "\u2014")}</span></div>
-          <div class="kcard-row"><span class="kcard-key">E-mail</span><span class="kcard-val">${escapeHtml(c.email || "\u2014")}</span></div>
+          <div class="kcard-row">
+            <span class="kcard-icon">\ud83d\udcf1</span>
+            <span class="kcard-val">${escapeHtml(c.phone || "\u2014")}</span>
+          </div>
+          <div class="kcard-row">
+            <span class="kcard-icon">\u2709</span>
+            <span class="kcard-val" title="${escapeHtml(c.email || "")}">${escapeHtml(c.email || "\u2014")}</span>
+          </div>
         </div>
         <div class="kcard-foot">
           <span class="kcard-stage stage-${st.tone}">${escapeHtml(st.name)}</span>
